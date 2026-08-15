@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  VIEWER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(VIEWER)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Integration {
+  id         String    @id @default(cuid())
+  provider   String    @unique
+  enabled    Boolean   @default(false)
+  config     String    @default("{}")
+  lastSyncAt DateTime?
+  lastStatus String?
+  lastError  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model CallRecord {
+  id          String   @id @default(cuid())
+  externalId  String   @unique
+  direction   String
+  status      String
+  agentName   String?
+  fromNumber  String?
+  toNumber    String?
+  durationSec Int      @default(0)
+  startedAt   DateTime
+  isDemo      Boolean  @default(false)
+  raw         String?
+  createdAt   DateTime @default(now())
+
+  @@index([startedAt])
+}
+
+model WhatsAppMessage {
+  id         String   @id @default(cuid())
+  externalId String?  @unique
+  direction  String
+  status     String?
+  agentName  String?
+  contact    String?
+  sentAt     DateTime
+  isDemo     Boolean  @default(false)
+  raw        String?
+  createdAt  DateTime @default(now())
+
+  @@index([sentAt])
+}
