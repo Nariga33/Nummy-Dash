@@ -1,7 +1,14 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { LogoMark } from "@/components/logo-mark";
 import { LoginForm } from "./login-form";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const session = await auth();
+  if (session?.user) {
+    redirect("/");
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <div className="w-full max-w-sm">
