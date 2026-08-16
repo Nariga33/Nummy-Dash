@@ -9,8 +9,22 @@ público).
 
 - Next.js 16 (App Router) + TypeScript + Tailwind CSS
 - Auth.js (NextAuth v5) com credenciais (e-mail/senha), sessão JWT
-- Prisma + SQLite (troque `DATABASE_URL` para Postgres em produção se preferir)
+- Prisma + PostgreSQL
 - Recharts para os gráficos
+
+## Banco de dados local
+
+O projeto usa PostgreSQL (necessário para funcionar em hospedagens
+serverless como a Vercel, que não têm disco persistente). Para rodar
+localmente, instale o Postgres e crie um banco:
+
+```bash
+sudo -u postgres psql -c "CREATE USER nummydash WITH PASSWORD 'localdevpass' CREATEDB;"
+sudo -u postgres psql -c "CREATE DATABASE nummydash OWNER nummydash;"
+```
+
+Ou use um banco gratuito na nuvem (Neon, Supabase, Vercel Postgres) e cole a
+connection string em `DATABASE_URL`.
 
 ## Configuração local
 
@@ -29,7 +43,7 @@ definidos no `.env`.
 
 | Variável | Descrição |
 |---|---|
-| `DATABASE_URL` | Conexão do banco (SQLite por padrão) |
+| `DATABASE_URL` | Connection string do PostgreSQL |
 | `AUTH_SECRET` | Segredo do Auth.js — gere com `openssl rand -base64 32` |
 | `INTEGRATIONS_ENCRYPTION_KEY` | Chave usada para criptografar as credenciais de integração salvas no banco — gere com `openssl rand -hex 32` |
 | `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Conta admin criada no primeiro `npm run db:seed` |
@@ -75,6 +89,18 @@ Não existe cadastro público. Um administrador cria cada login em
 **Usuários** (nome, e-mail, senha provisória, papel Admin/Visualizador) e
 repassa as credenciais à pessoa. Sempre deve haver pelo menos um
 administrador ativo no sistema.
+
+## Deploy na Vercel
+
+1. Importe este repositório em [vercel.com/new](https://vercel.com/new).
+2. Crie um banco Postgres de produção (aba **Storage** da Vercel, ou Neon/Supabase) e conecte — isso preenche `DATABASE_URL` automaticamente.
+3. Em **Settings → Environment Variables**, adicione: `AUTH_SECRET`, `INTEGRATIONS_ENCRYPTION_KEY`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `WHATSAPP_WEBHOOK_TOKEN` (valores fortes e únicos — não reaproveite os de desenvolvimento).
+4. Faça o deploy. Depois, rode as migrações e o seed inicial apontando para o banco de produção:
+   ```bash
+   DATABASE_URL="<url de produção>" npx prisma migrate deploy
+   DATABASE_URL="<url de produção>" ADMIN_EMAIL=... ADMIN_PASSWORD=... npm run db:seed
+   ```
+5. Acesse a URL gerada pela Vercel e entre com o `ADMIN_EMAIL`/`ADMIN_PASSWORD` do passo 4.
 
 ## Dados de demonstração
 

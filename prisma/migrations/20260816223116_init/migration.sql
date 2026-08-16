@@ -1,31 +1,38 @@
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('ADMIN', 'VIEWER');
+
 -- CreateTable
 CREATE TABLE "User" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
-    "role" TEXT NOT NULL DEFAULT 'VIEWER',
+    "role" "Role" NOT NULL DEFAULT 'VIEWER',
     "active" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Integration" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "provider" TEXT NOT NULL,
     "enabled" BOOLEAN NOT NULL DEFAULT false,
     "config" TEXT NOT NULL DEFAULT '{}',
-    "lastSyncAt" DATETIME,
+    "lastSyncAt" TIMESTAMP(3),
     "lastStatus" TEXT,
     "lastError" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Integration_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "CallRecord" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "externalId" TEXT NOT NULL,
     "direction" TEXT NOT NULL,
     "status" TEXT NOT NULL,
@@ -33,24 +40,28 @@ CREATE TABLE "CallRecord" (
     "fromNumber" TEXT,
     "toNumber" TEXT,
     "durationSec" INTEGER NOT NULL DEFAULT 0,
-    "startedAt" DATETIME NOT NULL,
+    "startedAt" TIMESTAMP(3) NOT NULL,
     "isDemo" BOOLEAN NOT NULL DEFAULT false,
     "raw" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CallRecord_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "WhatsAppMessage" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "externalId" TEXT,
     "direction" TEXT NOT NULL,
     "status" TEXT,
     "agentName" TEXT,
     "contact" TEXT,
-    "sentAt" DATETIME NOT NULL,
+    "sentAt" TIMESTAMP(3) NOT NULL,
     "isDemo" BOOLEAN NOT NULL DEFAULT false,
     "raw" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "WhatsAppMessage_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
