@@ -29,6 +29,11 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
   const [password, setPassword] = useState(generatePassword());
   const [role, setRole] = useState<"ADMIN" | "VIEWER">("VIEWER");
 
+  const [resetTarget, setResetTarget] = useState<User | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [resetSaving, setResetSaving] = useState(false);
+  const [resetShown, setResetShown] = useState<{ email: string; password: string } | null>(null);
+
   async function loadUsers() {
     const res = await fetch("/api/users");
     if (res.ok) {
@@ -99,6 +104,36 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
     await loadUsers();
   }
 
+  function openReset(user: User) {
+    setError(null);
+    setResetShown(null);
+    setResetTarget(user);
+    setResetPasswordValue(generatePassword());
+  }
+
+  async function submitReset(e: React.FormEvent) {
+    e.preventDefault();
+    if (!resetTarget) return;
+    setError(null);
+    setResetSaving(true);
+    try {
+      const res = await fetch(`/api/users/${resetTarget.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: resetPasswordValue }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Erro ao redefinir senha.");
+        return;
+      }
+      setResetShown({ email: resetTarget.email, password: resetPasswordValue });
+      setResetTarget(null);
+    } finally {
+      setResetSaving(false);
+    }
+  }
+
   async function removeUser(user: User) {
     if (!confirm(`Excluir o acesso de ${user.name} (${user.email})?`)) return;
     setError(null);
@@ -127,6 +162,52 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
             <span>Senha: {createdCredentials.password}</span>
           </div>
         </div>
+      )}
+
+      {resetShown && (
+        <div className="rounded-lg border border-emerald-800/50 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-300">
+          Senha redefinida. Anote agora — ela não será mostrada de novo:
+          <div className="mt-2 flex flex-col gap-1 font-mono text-xs">
+            <span>E-mail: {resetShown.email}</span>
+            <span>Nova senha: {resetShown.password}</span>
+          </div>
+        </div>
+      )}
+
+      {resetTarget && (
+        <form
+          onSubmit={submitReset}
+          className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-5 sm:flex-row sm:items-end"
+        >
+          <div className="flex-1">
+            <label className="mb-1 block text-xs text-slate-400">
+              Nova senha para {resetTarget.name} ({resetTarget.email})
+            </label>
+            <input
+              required
+              minLength={8}
+              value={resetPasswordValue}
+              onChange={(e) => setResetPasswordValue(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={resetSaving}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+            >
+              {resetSaving ? "Salvando..." : "Salvar nova senha"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setResetTarget(null)}
+              className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-slate-500"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
       )}
 
       <form
@@ -212,6 +293,12 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
                   </button>
                 </td>
                 <td className="px-4 py-3 text-right">
+                  <button
+                    onClick={() => openReset(user)}
+                    className="mr-3 text-xs text-slate-400 hover:text-slate-200"
+                  >
+                    Redefinir senha
+                  </button>
                   <button
                     onClick={() => removeUser(user)}
                     className="text-xs text-red-400 hover:text-red-300"
