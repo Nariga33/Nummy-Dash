@@ -6,6 +6,7 @@ import type { NextAuthConfig } from "next-auth";
  * mora em src/auth.ts, que roda em ambiente Node normal.
  */
 export const authConfig: NextAuthConfig = {
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
