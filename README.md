@@ -92,15 +92,14 @@ administrador ativo no sistema.
 
 ## Deploy na Vercel
 
-1. Importe este repositório em [vercel.com/new](https://vercel.com/new).
-2. Crie um banco Postgres de produção (aba **Storage** da Vercel, ou Neon/Supabase) e conecte — isso preenche `DATABASE_URL` automaticamente.
-3. Em **Settings → Environment Variables**, adicione: `AUTH_SECRET`, `INTEGRATIONS_ENCRYPTION_KEY`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `WHATSAPP_WEBHOOK_TOKEN` (valores fortes e únicos — não reaproveite os de desenvolvimento).
-4. Faça o deploy. Depois, rode as migrações e o seed inicial apontando para o banco de produção:
-   ```bash
-   DATABASE_URL="<url de produção>" npx prisma migrate deploy
-   DATABASE_URL="<url de produção>" ADMIN_EMAIL=... ADMIN_PASSWORD=... npm run db:seed
-   ```
-5. Acesse a URL gerada pela Vercel e entre com o `ADMIN_EMAIL`/`ADMIN_PASSWORD` do passo 4.
+`vercel.json` já define o build command (`prisma migrate deploy && db:seed && next build`),
+então migração e criação do admin acontecem sozinhas a cada deploy — não
+precisa rodar nada manualmente depois.
+
+1. Importe este repositório em [vercel.com/new](https://vercel.com/new), branch `claude/outbound-management-dashboard-3h9myg`.
+2. Adicione as variáveis de ambiente (Settings → Environment Variables, ou na tela de import): `AUTH_SECRET`, `INTEGRATIONS_ENCRYPTION_KEY`, `WHATSAPP_WEBHOOK_TOKEN`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` (valores fortes e únicos).
+3. Aba **Storage** → conecte/crie um banco Postgres — preenche `DATABASE_URL` sozinho e dispara um novo deploy.
+4. Pronto. Acesse a URL gerada e entre com o `ADMIN_EMAIL`/`ADMIN_PASSWORD` do passo 2.
 
 ## Dados de demonstração
 
