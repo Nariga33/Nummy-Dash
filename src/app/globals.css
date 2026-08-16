@@ -3,12 +3,18 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --brand: #f5b400;
+  --brand-hover: #ffc61a;
+  --brand-ink: #17140a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-ink: var(--brand-ink);
+  --font-sans: var(--font-poppins);
   --font-mono: var(--font-geist-mono);
 }
 

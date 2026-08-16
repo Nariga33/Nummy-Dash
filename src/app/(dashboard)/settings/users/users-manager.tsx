@@ -188,14 +188,14 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
               minLength={8}
               value={resetPasswordValue}
               onChange={(e) => setResetPasswordValue(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand"
             />
           </div>
           <div className="flex gap-2">
             <button
               type="submit"
               disabled={resetSaving}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+              className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover disabled:opacity-60"
             >
               {resetSaving ? "Salvando..." : "Salvar nova senha"}
             </button>
@@ -219,7 +219,7 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
           placeholder="Nome"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-emerald-500"
+          className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand"
         />
         <input
           required
@@ -227,19 +227,19 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
           placeholder="E-mail"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-emerald-500"
+          className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand"
         />
         <input
           required
           placeholder="Senha provisória"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-emerald-500"
+          className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand"
         />
         <select
           value={role}
           onChange={(e) => setRole(e.target.value as "ADMIN" | "VIEWER")}
-          className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
+          className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand"
         >
           <option value="VIEWER">Visualizador</option>
           <option value="ADMIN">Administrador</option>
@@ -247,7 +247,7 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
         <button
           type="submit"
           disabled={creating}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+          className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover disabled:opacity-60"
         >
           {creating ? "Criando..." : "Criar login"}
         </button>

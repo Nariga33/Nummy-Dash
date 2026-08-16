@@ -22,7 +22,7 @@ export function DateRangeSelect({
           onClick={() => onChange(opt.value)}
           className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
             value === opt.value
-              ? "bg-emerald-600/20 text-emerald-400"
+              ? "bg-brand/20 text-brand"
               : "text-slate-400 hover:text-slate-200"
           }`}
         >

@@ -162,18 +162,18 @@ export function IntegrationsManager() {
             placeholder="Chave da API (API Key)"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-emerald-500 sm:col-span-2"
+            className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand sm:col-span-2"
           />
           <input
             placeholder="Base URL (opcional, padrão: api.api4com.com/v1)"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-emerald-500"
+            className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand"
           />
           <button
             type="submit"
             disabled={savingApi4com}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+            className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover disabled:opacity-60"
           >
             {savingApi4com ? "Salvando..." : "Salvar chave"}
           </button>
@@ -215,7 +215,7 @@ export function IntegrationsManager() {
             Configure a plataforma de WhatsApp usada pela operação (Evolution API, Z-API, WPPConnect, Meta Cloud API
             etc.) para enviar um webhook a cada mensagem para:
           </p>
-          <code className="mt-1 block break-all rounded bg-slate-900 px-2 py-1 text-emerald-400">
+          <code className="mt-1 block break-all rounded bg-slate-900 px-2 py-1 text-brand">
             POST {origin}
             {status?.whatsapp.webhookUrl}
           </code>
@@ -230,12 +230,12 @@ export function IntegrationsManager() {
             placeholder="Token do webhook"
             value={webhookToken}
             onChange={(e) => setWebhookToken(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-emerald-500 sm:col-span-2"
+            className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand sm:col-span-2"
           />
           <button
             type="submit"
             disabled={savingWhatsapp}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+            className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover disabled:opacity-60"
           >
             {savingWhatsapp ? "Salvando..." : "Salvar token"}
           </button>
@@ -250,7 +250,7 @@ export function IntegrationsManager() {
               type="date"
               value={manualDate}
               onChange={(e) => setManualDate(e.target.value)}
-              className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
+              className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand"
             />
             <input
               type="number"
@@ -258,12 +258,12 @@ export function IntegrationsManager() {
               placeholder="Quantidade"
               value={manualCount || ""}
               onChange={(e) => setManualCount(Number(e.target.value))}
-              className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-emerald-500"
+              className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand"
             />
             <select
               value={manualDirection}
               onChange={(e) => setManualDirection(e.target.value as "SENT" | "RECEIVED")}
-              className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
+              className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand"
             >
               <option value="SENT">Enviadas</option>
               <option value="RECEIVED">Recebidas</option>
