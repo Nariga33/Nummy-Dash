@@ -99,7 +99,9 @@ async function seedDemoData() {
 
 async function main() {
   await seedAdmin();
-  await seedDemoData();
+  if (process.env.SEED_DEMO_DATA === "true") {
+    await seedDemoData();
+  }
 }
 
 main()

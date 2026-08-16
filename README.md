@@ -101,9 +101,11 @@ precisa rodar nada manualmente depois.
 3. Aba **Storage** → conecte/crie um banco Postgres — preenche `DATABASE_URL` sozinho e dispara um novo deploy.
 4. Pronto. Acesse a URL gerada e entre com o `ADMIN_EMAIL`/`ADMIN_PASSWORD` do passo 2.
 
-## Dados de demonstração
+## Dados de demonstração (opcional)
 
-Enquanto a API4COM não está conectada, `npm run db:seed` popula o banco com
-30 dias de ligações e mensagens fictícias (marcadas como demo) para o
-dashboard não ficar vazio. Um aviso amarelo aparece no topo enquanto os
-dados exibidos forem de demonstração.
+Por padrão o dashboard mostra zero até a API4COM/WhatsApp serem conectados —
+não gera nenhum número fictício sozinho. Se quiser ver a UI populada para
+teste, defina `SEED_DEMO_DATA="true"` antes de rodar `npm run db:seed`: isso
+cria 30 dias de ligações e mensagens fictícias (marcadas como demo), com um
+aviso amarelo no topo do dashboard e um botão para apagar esses dados a
+qualquer momento (aba Visão geral, ou `POST /api/demo-data/clear`).

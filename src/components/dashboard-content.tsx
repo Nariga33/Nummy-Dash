@@ -18,6 +18,8 @@ export function DashboardContent({ isAdmin }: { isAdmin: boolean }) {
   const [data, setData] = useState<MetricsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,7 +45,18 @@ export function DashboardContent({ isAdmin }: { isAdmin: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, [days]);
+  }, [days, refreshKey]);
+
+  async function clearDemoData() {
+    if (!confirm("Isso apaga permanentemente os dados de demonstração. Continuar?")) return;
+    setClearing(true);
+    try {
+      const res = await fetch("/api/demo-data/clear", { method: "POST" });
+      if (res.ok) setRefreshKey((k) => k + 1);
+    } finally {
+      setClearing(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -56,17 +69,28 @@ export function DashboardContent({ isAdmin }: { isAdmin: boolean }) {
       </div>
 
       {data?.isDemoData && (
-        <div className="rounded-lg border border-amber-800/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-300">
-          Exibindo dados de demonstração. {isAdmin ? (
-            <>
-              Configure a chave da API4COM em{" "}
-              <a href="/settings/integrations" className="underline underline-offset-2">
-                Integrações
-              </a>{" "}
-              para ver dados reais.
-            </>
-          ) : (
-            "Peça a um administrador para conectar as integrações reais."
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-800/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-300">
+          <span>
+            Exibindo dados de demonstração. {isAdmin ? (
+              <>
+                Configure a chave da API4COM em{" "}
+                <a href="/settings/integrations" className="underline underline-offset-2">
+                  Integrações
+                </a>{" "}
+                para ver dados reais.
+              </>
+            ) : (
+              "Peça a um administrador para conectar as integrações reais."
+            )}
+          </span>
+          {isAdmin && (
+            <button
+              onClick={clearDemoData}
+              disabled={clearing}
+              className="shrink-0 rounded-full border border-amber-700/60 px-3 py-1 text-xs font-medium text-amber-200 transition hover:border-amber-500 disabled:opacity-60"
+            >
+              {clearing ? "Zerando..." : "Zerar dados de demonstração"}
+            </button>
           )}
         </div>
       )}
