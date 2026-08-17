@@ -66,22 +66,28 @@ async function seedApi4com() {
   const apiKey = process.env.API4COM_API_KEY;
   if (!apiKey) return;
 
-  const existing = await prisma.integration.findUnique({ where: { provider: "api4com" } });
-  if (existing) {
-    console.log("Integração API4COM já configurada, pulando.");
-    return;
+  try {
+    const existing = await prisma.integration.findUnique({ where: { provider: "api4com" } });
+    if (existing) {
+      console.log("Integração API4COM já configurada, pulando.");
+      return;
+    }
+
+    const config = {
+      apiKey,
+      baseUrl: process.env.API4COM_BASE_URL || "https://api.api4com.com/v1",
+    };
+
+    await prisma.integration.create({
+      data: { provider: "api4com", enabled: true, config: encryptJSON(config) },
+    });
+
+    console.log("Integração API4COM configurada a partir de API4COM_API_KEY.");
+  } catch (err) {
+    // Não deve derrubar o deploy inteiro por causa de uma conveniência opcional —
+    // a chave sempre pode ser configurada depois pela tela Integrações.
+    console.warn("Não foi possível configurar a API4COM automaticamente:", err);
   }
-
-  const config = {
-    apiKey,
-    baseUrl: process.env.API4COM_BASE_URL || "https://api.api4com.com/v1",
-  };
-
-  await prisma.integration.create({
-    data: { provider: "api4com", enabled: true, config: encryptJSON(config) },
-  });
-
-  console.log("Integração API4COM configurada a partir de API4COM_API_KEY.");
 }
 
 async function seedDemoData() {
