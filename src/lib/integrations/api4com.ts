@@ -2,19 +2,13 @@ export type { Api4comConfig } from "@/lib/integrations/settings";
 import type { Api4comConfig } from "@/lib/integrations/settings";
 
 /**
- * Cliente para a API de voz da API4COM (https://developers.api4com.com).
+ * Cliente para a API de voz da API4COM (https://developers.api4com.com),
+ * construída em LoopBack (por isso o parâmetro `filter` no formato
+ * stringified JSON documentado em loopback.io/doc/en/lb3/Querying-data).
  *
- * A API4COM é uma API de VOZ (ligações) — ela não tem canal de WhatsApp.
- * Este cliente busca o histórico de chamadas (calls) para alimentar as
- * métricas de "quantidade de ligações" do dashboard.
- *
- * IMPORTANT — ajuste ao plugar a chave real:
- * O formato exato do endpoint de listagem de chamadas (paginação, nomes de
- * campos de status/duração) pode variar por conta/plano. `fetchCallsPage`
- * e `normalizeCall` abaixo são o único lugar que precisa mudar caso a
- * resposta real da API4COM tenha um formato diferente do assumido aqui.
- * Use a página "Integrações" no dashboard (botão "Testar conexão") para
- * validar a resposta bruta assim que a chave for configurada.
+ * Endpoint confirmado na doc oficial (operations/Call.find.html):
+ *   GET https://api.api4com.com/api/v1/calls?page=<n>&filter=<json>
+ * Resposta: { data: [...], meta: { totalItemCount, totalPageCount, ... } }
  */
 
 export type NormalizedCall = {
@@ -29,7 +23,7 @@ export type NormalizedCall = {
   raw: unknown;
 };
 
-const DEFAULT_BASE_URL = "https://api.api4com.com/v1";
+const DEFAULT_BASE_URL = "https://api.api4com.com/api/v1";
 
 export class Api4comApiError extends Error {
   constructor(
@@ -42,30 +36,48 @@ export class Api4comApiError extends Error {
   }
 }
 
+function buildUrl(baseUrl: string, path: string, apiKey: string, extraParams: Record<string, string> = {}) {
+  const url = new URL(`${baseUrl.replace(/\/$/, "")}${path}`);
+  url.searchParams.set("access_token", apiKey);
+  for (const [key, value] of Object.entries(extraParams)) {
+    url.searchParams.set(key, value);
+  }
+  return url;
+}
+
 function buildHeaders(apiKey: string): HeadersInit {
   return {
     Authorization: `Bearer ${apiKey}`,
-    "x-api-key": apiKey,
     Accept: "application/json",
   };
+}
+
+async function parseResponseBody(res: Response) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 }
 
 /** Faz uma chamada simples de teste para validar a chave de API. */
 export async function testApi4comConnection(config: Api4comConfig) {
   const baseUrl = config.baseUrl || DEFAULT_BASE_URL;
-  const url = `${baseUrl.replace(/\/$/, "")}/calls?limit=1`;
+  const url = buildUrl(baseUrl, "/calls", config.apiKey, { page: "1" });
 
   const res = await fetch(url, { headers: buildHeaders(config.apiKey) });
-  const text = await res.text();
-  let body: unknown = text;
-  try {
-    body = JSON.parse(text);
-  } catch {
-    // resposta não era JSON, mantém texto bruto
-  }
+  const body = await parseResponseBody(res);
 
   if (!res.ok) {
     throw new Api4comApiError(`API4COM respondeu ${res.status}`, res.status, body);
+  }
+  if (typeof body === "string") {
+    throw new Api4comApiError(
+      "API4COM respondeu com HTML em vez de JSON — a Base URL configurada provavelmente está incorreta.",
+      res.status,
+      body.slice(0, 300)
+    );
   }
 
   return { status: res.status, body };
@@ -76,7 +88,15 @@ type FetchCallsParams = {
   startDate: Date;
   endDate: Date;
   page?: number;
-  pageSize?: number;
+};
+
+type Api4comListResponse = {
+  data?: unknown[];
+  meta?: {
+    totalPageCount?: number;
+    currentPage?: number;
+    nextPage?: number | null;
+  };
 };
 
 /** Busca uma página de chamadas dentro do período informado. */
@@ -85,26 +105,33 @@ async function fetchCallsPage({
   startDate,
   endDate,
   page = 1,
-  pageSize = 100,
 }: FetchCallsParams): Promise<{ items: unknown[]; hasMore: boolean }> {
   const baseUrl = config.baseUrl || DEFAULT_BASE_URL;
-  const params = new URLSearchParams({
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
-    page: String(page),
-    limit: String(pageSize),
+  const filter = JSON.stringify({
+    where: { started_at: { between: [startDate.toISOString(), endDate.toISOString()] } },
+    order: "started_at DESC",
   });
-  const url = `${baseUrl.replace(/\/$/, "")}/calls?${params.toString()}`;
+  const url = buildUrl(baseUrl, "/calls", config.apiKey, { page: String(page), filter });
 
   const res = await fetch(url, { headers: buildHeaders(config.apiKey) });
+  const body = await parseResponseBody(res);
+
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
     throw new Api4comApiError(`API4COM respondeu ${res.status} ao listar chamadas`, res.status, body);
   }
+  if (typeof body === "string") {
+    throw new Api4comApiError(
+      "API4COM respondeu com HTML em vez de JSON — verifique a Base URL configurada.",
+      res.status,
+      body.slice(0, 300)
+    );
+  }
 
-  const data = await res.json();
-  const items: unknown[] = Array.isArray(data) ? data : (data.items ?? data.data ?? data.results ?? []);
-  const hasMore = Boolean(data?.hasMore ?? data?.hasNextPage ?? items.length === pageSize);
+  const data = body as Api4comListResponse;
+  const items = Array.isArray(data.data) ? data.data : [];
+  const totalPages = data.meta?.totalPageCount ?? 1;
+  const currentPage = data.meta?.currentPage ?? page;
+  const hasMore = Boolean(data.meta?.nextPage) || currentPage < totalPages;
 
   return { items, hasMore };
 }
@@ -127,28 +154,38 @@ function pickNumber(obj: Record<string, unknown>, keys: string[]): number {
   return 0;
 }
 
-/** Normaliza um registro cru da API4COM para o formato salvo no banco. */
+const ANSWERED_HANGUP_CAUSES = new Set(["NORMAL_CLEARING"]);
+
+/** Normaliza um registro cru da API4COM (formato /api/v1/calls) para o banco. */
 export function normalizeCall(raw: unknown): NormalizedCall | null {
   if (!raw || typeof raw !== "object") return null;
   const obj = raw as Record<string, unknown>;
 
-  const externalId = pickString(obj, ["id", "callId", "uuid", "_id"]);
-  const startedAtRaw = pickString(obj, ["startedAt", "createdAt", "startTime", "date"]);
+  const externalId = pickString(obj, ["id"]);
+  const startedAtRaw = pickString(obj, ["started_at"]);
   if (!externalId || !startedAtRaw) return null;
 
-  const directionRaw = (pickString(obj, ["direction", "type"]) ?? "outbound").toLowerCase();
-  const direction: "OUTBOUND" | "INBOUND" = directionRaw.includes("in") ? "INBOUND" : "OUTBOUND";
+  const callType = (pickString(obj, ["call_type"]) ?? "").toLowerCase();
+  const direction: "OUTBOUND" | "INBOUND" = callType.includes("in") ? "INBOUND" : "OUTBOUND";
 
-  const status = (pickString(obj, ["status", "state", "hangupCause"]) ?? "UNKNOWN").toUpperCase();
+  const durationSec = pickNumber(obj, ["duration"]);
+  const hangupCause = pickString(obj, ["hangup_cause"]);
+  const status = durationSec > 0 || (hangupCause && ANSWERED_HANGUP_CAUSES.has(hangupCause.toUpperCase()))
+    ? "ANSWERED"
+    : (hangupCause ?? "UNKNOWN").toUpperCase();
+
+  const firstName = pickString(obj, ["first_name"]);
+  const lastName = pickString(obj, ["last_name"]);
+  const agentName = [firstName, lastName].filter(Boolean).join(" ") || pickString(obj, ["email"]);
 
   return {
     externalId,
     direction,
     status,
-    agentName: pickString(obj, ["agentName", "userName", "extensionName", "agent"]),
-    fromNumber: pickString(obj, ["from", "fromNumber", "caller", "source"]),
-    toNumber: pickString(obj, ["to", "toNumber", "callee", "destination"]),
-    durationSec: pickNumber(obj, ["duration", "durationSec", "billsec", "talkTime"]),
+    agentName,
+    fromNumber: pickString(obj, ["from"]),
+    toNumber: pickString(obj, ["to"]),
+    durationSec,
     startedAt: new Date(startedAtRaw),
     raw,
   };

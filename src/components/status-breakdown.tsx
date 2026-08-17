@@ -3,10 +3,20 @@ const STATUS_LABELS: Record<string, string> = {
   COMPLETED: "Atendida",
   SUCCESS: "Atendida",
   NO_ANSWER: "Não atendida",
+  NOANSWER: "Não atendida",
   BUSY: "Ocupado",
+  USER_BUSY: "Ocupado",
   FAILED: "Falhou",
   UNKNOWN: "Desconhecido",
   MANUAL: "Lançamento manual",
+  // Causas de desligamento reais da API4COM (padrão FreeSWITCH)
+  ORIGINATOR_CANCEL: "Cancelada por quem ligou",
+  UNALLOCATED_NUMBER: "Número inexistente",
+  NO_USER_RESPONSE: "Não atendida",
+  NO_ROUTE_DESTINATION: "Sem rota/destino",
+  CALL_REJECTED: "Rejeitada",
+  NORMAL_TEMPORARY_FAILURE: "Falha temporária",
+  RECOVERY_ON_TIMER_EXPIRE: "Tempo esgotado",
 };
 
 export function StatusBreakdown({ data }: { data: { status: string; count: number }[] }) {
