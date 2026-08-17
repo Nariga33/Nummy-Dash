@@ -1,7 +1,24 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
+
+// Mesma criptografia de src/lib/crypto.ts, duplicada aqui porque este script
+// roda via tsx fora do bundler do Next (o alias "@/" não é resolvido aqui).
+function encryptJSON(value: unknown): string {
+  const raw = process.env.INTEGRATIONS_ENCRYPTION_KEY;
+  if (!raw || raw.length < 32) {
+    throw new Error("INTEGRATIONS_ENCRYPTION_KEY ausente ou muito curta.");
+  }
+  const key = crypto.createHash("sha256").update(raw).digest();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const plaintext = Buffer.from(JSON.stringify(value), "utf8");
+  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return [iv.toString("hex"), tag.toString("hex"), encrypted.toString("hex")].join(":");
+}
 
 const AGENTS = ["Ana Souza", "Bruno Lima", "Carla Nunes", "Diego Alves"];
 const CALL_STATUSES = [
@@ -43,6 +60,28 @@ async function seedAdmin() {
   });
 
   console.log(`Usuário admin criado: ${email} (senha definida via ADMIN_PASSWORD no .env)`);
+}
+
+async function seedApi4com() {
+  const apiKey = process.env.API4COM_API_KEY;
+  if (!apiKey) return;
+
+  const existing = await prisma.integration.findUnique({ where: { provider: "api4com" } });
+  if (existing) {
+    console.log("Integração API4COM já configurada, pulando.");
+    return;
+  }
+
+  const config = {
+    apiKey,
+    baseUrl: process.env.API4COM_BASE_URL || "https://api.api4com.com/v1",
+  };
+
+  await prisma.integration.create({
+    data: { provider: "api4com", enabled: true, config: encryptJSON(config) },
+  });
+
+  console.log("Integração API4COM configurada a partir de API4COM_API_KEY.");
 }
 
 async function seedDemoData() {
@@ -99,6 +138,7 @@ async function seedDemoData() {
 
 async function main() {
   await seedAdmin();
+  await seedApi4com();
   if (process.env.SEED_DEMO_DATA === "true") {
     await seedDemoData();
   }

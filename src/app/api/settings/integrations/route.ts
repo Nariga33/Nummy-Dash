@@ -63,16 +63,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
   }
 
-  if (parsed.data.provider === "api4com") {
-    const config: Api4comConfig = {
-      apiKey: parsed.data.apiKey,
-      baseUrl: parsed.data.baseUrl || "https://api.api4com.com/v1",
-    };
-    await saveIntegrationConfig(PROVIDERS.API4COM, config, true);
-    return NextResponse.json({ ok: true });
-  }
+  try {
+    if (parsed.data.provider === "api4com") {
+      const config: Api4comConfig = {
+        apiKey: parsed.data.apiKey,
+        baseUrl: parsed.data.baseUrl || "https://api.api4com.com/v1",
+      };
+      await saveIntegrationConfig(PROVIDERS.API4COM, config, true);
+      return NextResponse.json({ ok: true });
+    }
 
-  const config: WhatsAppConfig = { webhookToken: parsed.data.webhookToken };
-  await saveIntegrationConfig(PROVIDERS.WHATSAPP, config, true);
-  return NextResponse.json({ ok: true });
+    const config: WhatsAppConfig = { webhookToken: parsed.data.webhookToken };
+    await saveIntegrationConfig(PROVIDERS.WHATSAPP, config, true);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro ao salvar integração.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

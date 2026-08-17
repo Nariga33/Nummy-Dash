@@ -38,11 +38,13 @@ export function IntegrationsManager() {
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [savingApi4com, setSavingApi4com] = useState(false);
+  const [saveApi4comError, setSaveApi4comError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [syncResult, setSyncResult] = useState<string | null>(null);
 
   const [webhookToken, setWebhookToken] = useState("");
   const [savingWhatsapp, setSavingWhatsapp] = useState(false);
+  const [saveWhatsappError, setSaveWhatsappError] = useState<string | null>(null);
 
   const [manualDate, setManualDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [manualCount, setManualCount] = useState(0);
@@ -65,16 +67,22 @@ export function IntegrationsManager() {
     e.preventDefault();
     setSavingApi4com(true);
     setTestResult(null);
+    setSaveApi4comError(null);
     try {
       const res = await fetch("/api/settings/integrations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider: "api4com", apiKey, baseUrl }),
       });
+      const json = await res.json().catch(() => ({}));
       if (res.ok) {
         setApiKey("");
         await loadStatus();
+      } else {
+        setSaveApi4comError(json.error ?? "Erro ao salvar a chave.");
       }
+    } catch {
+      setSaveApi4comError("Erro de rede ao salvar a chave.");
     } finally {
       setSavingApi4com(false);
     }
@@ -106,16 +114,22 @@ export function IntegrationsManager() {
   async function saveWhatsapp(e: React.FormEvent) {
     e.preventDefault();
     setSavingWhatsapp(true);
+    setSaveWhatsappError(null);
     try {
       const res = await fetch("/api/settings/integrations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider: "whatsapp", webhookToken }),
       });
+      const json = await res.json().catch(() => ({}));
       if (res.ok) {
         setWebhookToken("");
         await loadStatus();
+      } else {
+        setSaveWhatsappError(json.error ?? "Erro ao salvar o token.");
       }
+    } catch {
+      setSaveWhatsappError("Erro de rede ao salvar o token.");
     } finally {
       setSavingWhatsapp(false);
     }
@@ -193,6 +207,7 @@ export function IntegrationsManager() {
           </button>
         </form>
 
+        {saveApi4comError && <p className="mt-3 text-xs text-red-400">{saveApi4comError}</p>}
         {testResult && (
           <p className={`mt-3 text-xs ${testResult.ok ? "text-emerald-400" : "text-red-400"}`}>{testResult.message}</p>
         )}
@@ -240,6 +255,7 @@ export function IntegrationsManager() {
             {savingWhatsapp ? "Salvando..." : "Salvar token"}
           </button>
         </form>
+        {saveWhatsappError && <p className="mt-3 text-xs text-red-400">{saveWhatsappError}</p>}
 
         <div className="mt-5 border-t border-slate-800 pt-4">
           <p className="mb-2 text-xs font-medium text-slate-300">
