@@ -83,6 +83,30 @@ export const EMPLOYEE_RANGES = [
 export const DEFAULT_EMPLOYEE_RANGES = ["1,10", "11,20", "21,50", "51,100"];
 
 /**
+ * Mapa de cargos de decisor pra busca de pessoas (person_titles), agrupado por
+ * papel. Cobre desde quem decide (sócio/diretor) até quem opera o dia a dia
+ * (analista/vendedor) — em empresa pequena o dono às vezes É o vendedor.
+ */
+export const DECISION_MAKER_TITLE_GROUPS = [
+  {
+    label: "Dono / Sócio",
+    titles: ["Sócio", "Fundador", "Co-fundador", "CEO", "Proprietário"],
+  },
+  {
+    label: "Diretoria",
+    titles: ["Diretor", "Diretor Comercial", "Diretor de Marketing", "Diretor de E-commerce"],
+  },
+  {
+    label: "Gerência",
+    titles: ["Gerente Comercial", "Gerente de E-commerce", "Gerente de Marketing", "Gerente de Vendas"],
+  },
+  {
+    label: "Operação",
+    titles: ["Coordenador de E-commerce", "Analista de E-commerce", "Analista de Marketing", "Vendedor"],
+  },
+] as const;
+
+/**
  * Plataformas de carrinho/e-commerce reconhecidas, mapeadas para o technology_uid
  * usado pelo filtro `currently_using_any_of_technology_uids` do Apollo (slugs em
  * snake_case).

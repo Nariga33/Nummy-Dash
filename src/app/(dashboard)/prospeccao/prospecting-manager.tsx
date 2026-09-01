@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { EMPLOYEE_RANGES, DEFAULT_EMPLOYEE_RANGES, CART_PLATFORMS } from "@/lib/integrations/apollo";
 import { ContactsPanel } from "./contacts-panel";
+import { CompaniesKanban } from "./companies-kanban";
 
 const DEFAULT_CART_PLATFORMS = ["Shopify", "Nuvemshop", "VTEX", "Loja Integrada", "Tray Commerce", "WooCommerce"];
 
@@ -63,6 +64,7 @@ export function ProspectingManager() {
   const [statusFilter, setStatusFilter] = useState("");
   const [sizeFilter, setSizeFilter] = useState("");
   const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
+  const [view, setView] = useState<"table" | "kanban">("table");
 
   async function loadCompanies() {
     setLoadingList(true);
@@ -230,7 +232,27 @@ export function ProspectingManager() {
       <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-200">Empresas prospectadas ({companies.length})</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <div className="flex overflow-hidden rounded-lg border border-slate-700 text-xs">
+              <button
+                type="button"
+                onClick={() => setView("table")}
+                className={`px-3 py-1.5 font-medium transition ${
+                  view === "table" ? "bg-brand/15 text-brand" : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Tabela
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("kanban")}
+                className={`px-3 py-1.5 font-medium transition ${
+                  view === "kanban" ? "bg-brand/15 text-brand" : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Kanban
+              </button>
+            </div>
             <select
               value={sizeFilter}
               onChange={(e) => setSizeFilter(e.target.value)}
@@ -260,6 +282,8 @@ export function ProspectingManager() {
           <p className="text-sm text-slate-500">Carregando...</p>
         ) : companies.length === 0 ? (
           <p className="text-sm text-slate-500">Nenhuma empresa ainda — rode uma busca acima.</p>
+        ) : view === "kanban" ? (
+          <CompaniesKanban companies={companies} onStatusChange={(id, status) => updateCompany(id, { status })} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-sm">

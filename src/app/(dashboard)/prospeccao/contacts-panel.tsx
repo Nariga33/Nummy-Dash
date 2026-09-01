@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DECISION_MAKER_TITLE_GROUPS } from "@/lib/integrations/apollo";
+
+const DEFAULT_TITLES = ["Sócio", "Fundador", "CEO", "Diretor", "Gerente de E-commerce"];
 
 type Contact = {
   id: string;
@@ -29,7 +32,8 @@ const STATUS_COLORS: Record<Contact["status"], string> = {
 };
 
 export function ContactsPanel({ companyId }: { companyId: string }) {
-  const [titles, setTitles] = useState("Sócio, Fundador, CEO, Diretor, Gerente de E-commerce");
+  const [titles, setTitles] = useState<string[]>(DEFAULT_TITLES);
+  const [customTitle, setCustomTitle] = useState("");
   const [keywords, setKeywords] = useState("");
 
   const [searching, setSearching] = useState(false);
@@ -70,10 +74,7 @@ export function ContactsPanel({ companyId }: { companyId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           companyId,
-          titles: titles
-            .split(",")
-            .map((v) => v.trim())
-            .filter(Boolean),
+          titles: [...titles, ...customTitle.split(",").map((v) => v.trim()).filter(Boolean)],
           keywords: keywords || undefined,
         }),
       });
@@ -125,26 +126,56 @@ export function ContactsPanel({ companyId }: { companyId: string }) {
 
   return (
     <div className="border-t border-slate-800 bg-slate-950/40 p-4">
-      <form onSubmit={runSearch} className="mb-4 flex flex-col gap-2 sm:flex-row">
-        <input
-          placeholder="Cargo (separe por vírgula)"
-          value={titles}
-          onChange={(e) => setTitles(e.target.value)}
-          className="flex-1 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand"
-        />
-        <input
-          placeholder="Nome (opcional)"
-          value={keywords}
-          onChange={(e) => setKeywords(e.target.value)}
-          className="flex-1 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand"
-        />
-        <button
-          type="submit"
-          disabled={searching}
-          className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover disabled:opacity-60"
-        >
-          {searching ? "Buscando..." : "Buscar decisores"}
-        </button>
+      <form onSubmit={runSearch} className="mb-4 flex flex-col gap-3">
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
+          {DECISION_MAKER_TITLE_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-500">{group.label}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {group.titles.map((title) => {
+                  const checked = titles.includes(title);
+                  return (
+                    <button
+                      type="button"
+                      key={title}
+                      onClick={() =>
+                        setTitles((prev) => (prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title]))
+                      }
+                      className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                        checked
+                          ? "border-brand bg-brand/15 text-brand"
+                          : "border-slate-700 text-slate-400 hover:border-slate-500"
+                      }`}
+                    >
+                      {title}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            placeholder="Outro cargo (opcional, separe por vírgula)"
+            value={customTitle}
+            onChange={(e) => setCustomTitle(e.target.value)}
+            className="flex-1 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand"
+          />
+          <input
+            placeholder="Nome (opcional)"
+            value={keywords}
+            onChange={(e) => setKeywords(e.target.value)}
+            className="flex-1 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand"
+          />
+          <button
+            type="submit"
+            disabled={searching || (titles.length === 0 && !customTitle && !keywords)}
+            className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover disabled:opacity-60"
+          >
+            {searching ? "Buscando..." : "Buscar decisores"}
+          </button>
+        </div>
       </form>
       {searchError && <p className="mb-3 text-xs text-red-400">{searchError}</p>}
       {searchResult && <p className="mb-3 text-xs text-emerald-400">{searchResult}</p>}
