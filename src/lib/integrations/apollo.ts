@@ -59,28 +59,55 @@ export const EMPLOYEE_RANGES = [
 /** Faixas marcadas por padrão: exatamente a lacuna que o concorrente ignora. */
 export const DEFAULT_EMPLOYEE_RANGES = ["1,10", "11,20", "21,50", "51,100"];
 
-/** Plataformas de carrinho/e-commerce reconhecidas nas technologies do Apollo. */
-export const CART_PLATFORMS = [
-  "Shopify",
-  "Shopify Plus",
-  "Nuvemshop",
-  "Loja Integrada",
-  "VTEX",
-  "Tray Commerce",
-  "Tray",
-  "WooCommerce",
-  "Magento",
-  "BigCommerce",
-  "Wake Commerce",
-  "Linx Commerce",
-  "Vnda",
-  "Yampi",
-  "Wix Stores",
-  "Salesforce Commerce Cloud",
-  "OpenCart",
-  "PrestaShop",
-  "Cartpanda",
-] as const;
+/**
+ * Plataformas de carrinho/e-commerce reconhecidas, mapeadas para o technology_uid
+ * usado pelo filtro `currently_using_any_of_technology_uids` do Apollo (slugs em
+ * snake_case).
+ *
+ * Slugs CONFIRMADOS em busca real (2026-09-01, Brasil + 1-50 funcionários — o
+ * Apollo devolveu um display_name capitalizado pra eles, sinal de que o slug foi
+ * reconhecido): shopify, loja_integrada, vtex, wake_commerce, linx_commerce, vnda,
+ * cartpanda.
+ *
+ * Slugs NÃO reconhecidos na mesma busca (vieram com display_name igual ao slug em
+ * minúsculo, sinal de que o Apollo não achou correspondência): nuvemshop,
+ * tray_commerce, yampi, woocommerce — inclusive woocommerce, o que é estranho pra
+ * uma plataforma tão grande, então o slug real provavelmente é outro (candidatos:
+ * "woo_commerce", "wordpress_woocommerce"; Nuvemshop é vendida internacionalmente
+ * como "Tienda Nube", então o slug pode ser "tienda_nube" ou "tiendanube"). Os
+ * demais (Shopify Plus, Magento, BigCommerce, Wix, Salesforce Commerce Cloud,
+ * OpenCart, PrestaShop) ainda não foram testados nesta busca. Trate os marcados
+ * "não confirmado" como chute e valide contra o technology_names de um resultado
+ * real antes de confiar neles pra excluir empresas.
+ *
+ * Mesmo os slugs confirmados tiveram falso-positivo na prática (empresas sem
+ * carrinho nenhum apareceram no resultado) — a detecção de tecnologia do Apollo
+ * não é garantia de e-commerce ativo, é sinal pra priorizar. Por isso a lista
+ * volta com status "Novo" e passa pelo funil manual (Contatado/Qualificado/
+ * Descartado) em vez de já vir pré-qualificada.
+ */
+export const CART_PLATFORM_TECH_UIDS: Record<string, string> = {
+  Shopify: "shopify",
+  "Shopify Plus": "shopify_plus", // não confirmado
+  Nuvemshop: "nuvemshop", // não reconhecido pelo Apollo — tentar "tienda_nube"
+  "Loja Integrada": "loja_integrada",
+  VTEX: "vtex",
+  "Tray Commerce": "tray_commerce", // não reconhecido pelo Apollo — tentar "tray"
+  WooCommerce: "woocommerce", // não reconhecido pelo Apollo — tentar "woo_commerce"
+  Magento: "magento", // não confirmado
+  BigCommerce: "bigcommerce", // não confirmado
+  "Wake Commerce": "wake_commerce",
+  "Linx Commerce": "linx_commerce",
+  Vnda: "vnda",
+  Yampi: "yampi", // não reconhecido pelo Apollo nesta busca
+  "Wix Stores": "wix", // não confirmado
+  "Salesforce Commerce Cloud": "salesforce_commerce_cloud", // não confirmado
+  OpenCart: "opencart", // não confirmado
+  PrestaShop: "prestashop", // não confirmado
+  Cartpanda: "cartpanda"
+};
+
+export const CART_PLATFORMS = Object.keys(CART_PLATFORM_TECH_UIDS) as (keyof typeof CART_PLATFORM_TECH_UIDS)[];
 
 export type NormalizedOrganization = {
   apolloOrgId: string;
@@ -159,7 +186,11 @@ export async function searchOrganizationsPage(
     per_page: perPage,
     organization_num_employees_ranges: employeeRanges,
   };
-  if (technologies.length > 0) body.q_organization_keyword_tags = technologies;
+  if (technologies.length > 0) {
+    body.currently_using_any_of_technology_uids = technologies.map(
+      (t) => CART_PLATFORM_TECH_UIDS[t] ?? t.toLowerCase().replace(/[\s.]+/g, "_")
+    );
+  }
   if (locations.length > 0) body.organization_locations = locations;
   if (keywords) body.q_organization_name = keywords;
 

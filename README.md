@@ -113,6 +113,16 @@ plataforma como sinais.
 Para conectar: em **Integrações**, cole a API key do Apollo (Settings → API
 no painel do Apollo) e clique em "Testar conexão".
 
+Validado com uma busca real: Brasil + 1–50 funcionários + qualquer uma das
+tecnologias retornou 6.293 empresas — confirma que a lacuna existe e é
+grande. Os slugs de tecnologia confirmados nessa busca foram `shopify`,
+`loja_integrada`, `vtex`, `wake_commerce`, `linx_commerce`, `vnda` e
+`cartpanda` (ver comentário em `src/lib/integrations/apollo.ts` para o que
+ainda falta confirmar, incluindo o slug real do Nuvemshop e do WooCommerce).
+A mesma busca também trouxe empresas sem carrinho nenhum — a detecção de
+tecnologia do Apollo tem falso-positivo, por isso os resultados entram como
+"Novo" e passam pelo funil manual antes de virar contato.
+
 ## Usuários
 
 Não existe cadastro público. Um administrador cria cada login em
