@@ -156,6 +156,23 @@ export const CART_PLATFORM_TECH_UIDS: Record<string, string> = {
 
 export const CART_PLATFORMS = Object.keys(CART_PLATFORM_TECH_UIDS) as (keyof typeof CART_PLATFORM_TECH_UIDS)[];
 
+/**
+ * Só as plataformas cujo slug foi confirmado batendo numa busca real (ver
+ * comentário de CART_PLATFORM_TECH_UIDS). Usar como default na UI evita que um
+ * slug não reconhecido "silencie" o filtro de tecnologia inteiro — foi
+ * exatamente isso que causou empresas sem carrinho nenhum aparecendo na busca
+ * quando Nuvemshop/Tray/WooCommerce (não reconhecidos) estavam marcados.
+ */
+export const CONFIRMED_CART_PLATFORMS = [
+  "Shopify",
+  "Loja Integrada",
+  "VTEX",
+  "Wake Commerce",
+  "Linx Commerce",
+  "Vnda",
+  "Cartpanda",
+] as const;
+
 export type NormalizedOrganization = {
   apolloOrgId: string;
   name: string;
@@ -337,7 +354,7 @@ export async function searchPeoplePage(
   if (keywords) body.q_keywords = keywords;
   if (seniorities.length > 0) body.person_seniorities = seniorities;
 
-  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/mixed_people/search`, {
+  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/mixed_people/api_search`, {
     method: "POST",
     headers: buildHeaders(config.apiKey),
     body: JSON.stringify(body),

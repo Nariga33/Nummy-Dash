@@ -1,11 +1,14 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
-import { EMPLOYEE_RANGES, DEFAULT_EMPLOYEE_RANGES, CART_PLATFORMS } from "@/lib/integrations/apollo";
+import {
+  EMPLOYEE_RANGES,
+  DEFAULT_EMPLOYEE_RANGES,
+  CART_PLATFORMS,
+  CONFIRMED_CART_PLATFORMS,
+} from "@/lib/integrations/apollo";
 import { ContactsPanel } from "./contacts-panel";
 import { CompaniesKanban } from "./companies-kanban";
-
-const DEFAULT_CART_PLATFORMS = ["Shopify", "Nuvemshop", "VTEX", "Loja Integrada", "Tray Commerce", "WooCommerce"];
 
 type Company = {
   id: string;
@@ -51,7 +54,7 @@ function toggle(list: string[], value: string): string[] {
 export function ProspectingManager() {
   const [searchName, setSearchName] = useState("Empresas pequenas de e-commerce");
   const [employeeRanges, setEmployeeRanges] = useState<string[]>(DEFAULT_EMPLOYEE_RANGES);
-  const [platforms, setPlatforms] = useState<string[]>(DEFAULT_CART_PLATFORMS);
+  const [platforms, setPlatforms] = useState<string[]>([...CONFIRMED_CART_PLATFORMS]);
   const [locations, setLocations] = useState("Brazil");
   const [keywords, setKeywords] = useState("");
 
@@ -110,8 +113,12 @@ export function ProspectingManager() {
       });
       const json = await res.json();
       if (res.ok) {
+        const discardedNote =
+          json.discardedByPlatformFilter > 0
+            ? ` (${json.discardedByPlatformFilter} descartadas por não ter carrinho detectado)`
+            : "";
         setSearchResult(
-          `${json.fetched} empresas retornadas pelo Apollo (${json.totalEntries} no total) — ${json.created} novas, ${json.updated} atualizadas.`
+          `${json.fetched} empresas com carrinho detectado${discardedNote} (${json.totalEntries} no total no Apollo) — ${json.created} novas, ${json.updated} atualizadas.`
         );
         await loadCompanies();
       } else {
@@ -181,24 +188,30 @@ export function ProspectingManager() {
             <div className="flex flex-wrap gap-2">
               {CART_PLATFORMS.map((platform) => {
                 const checked = platforms.includes(platform);
+                const confirmed = (CONFIRMED_CART_PLATFORMS as readonly string[]).includes(platform);
                 return (
                   <button
                     type="button"
                     key={platform}
+                    title={confirmed ? undefined : "Slug não confirmado no Apollo — pode não filtrar nada"}
                     onClick={() => setPlatforms((prev) => toggle(prev, platform))}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
                       checked
                         ? "border-brand bg-brand/15 text-brand"
                         : "border-slate-700 text-slate-400 hover:border-slate-500"
-                    }`}
+                    } ${!confirmed ? "opacity-60" : ""}`}
                   >
                     {platform}
+                    {!confirmed && <span className="ml-1 text-amber-400">?</span>}
                   </button>
                 );
               })}
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Nenhuma marcada = não filtra por plataforma (traz e-commerce e não-e-commerce).
+              Nenhuma marcada = não filtra por plataforma (traz e-commerce e não-e-commerce). As com{" "}
+              <span className="text-amber-400">?</span> ainda não tiveram o slug confirmado no Apollo — empresas sem
+              nenhuma plataforma detectada são descartadas automaticamente quando pelo menos uma está marcada, então
+              usar só as confirmadas dá mais resultado.
             </p>
           </div>
 
