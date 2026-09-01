@@ -43,6 +43,29 @@ async function parseResponseBody(res: Response) {
   }
 }
 
+/** Extrai a mensagem de erro do corpo de uma resposta não-ok do Apollo, quando houver. */
+function extractErrorDetail(body: unknown): string | null {
+  if (!body || typeof body !== "object") return null;
+  const obj = body as Record<string, unknown>;
+  const direct = obj["error"] ?? obj["message"] ?? obj["error_message"];
+  if (typeof direct === "string") return direct;
+  if (Array.isArray(obj["errors"])) {
+    return obj["errors"]
+      .map((e) => (typeof e === "string" ? e : JSON.stringify(e)))
+      .join("; ");
+  }
+  return null;
+}
+
+function apolloError(action: string, res: Response, body: unknown): ApolloApiError {
+  const detail = extractErrorDetail(body);
+  return new ApolloApiError(
+    `Apollo respondeu ${res.status} ao ${action}${detail ? `: ${detail}` : ""}`,
+    res.status,
+    body
+  );
+}
+
 /** Faixas de nº de funcionários no formato exigido pelo Apollo ("min,max"). */
 export const EMPLOYEE_RANGES = [
   { value: "1,10", label: "1–10 (micro)" },
@@ -137,7 +160,7 @@ export async function testApolloConnection(config: ApolloConfig) {
   const body = await parseResponseBody(res);
 
   if (!res.ok) {
-    throw new ApolloApiError(`Apollo respondeu ${res.status}`, res.status, body);
+    throw apolloError("testar a conexão", res, body);
   }
   if (typeof body === "string") {
     throw new ApolloApiError(
@@ -202,7 +225,7 @@ export async function searchOrganizationsPage(
   const parsed = await parseResponseBody(res);
 
   if (!res.ok) {
-    throw new ApolloApiError(`Apollo respondeu ${res.status} ao buscar empresas`, res.status, parsed);
+    throw apolloError("buscar empresas", res, parsed);
   }
   if (typeof parsed === "string") {
     throw new ApolloApiError(
@@ -298,7 +321,7 @@ export async function searchPeoplePage(
   const parsed = await parseResponseBody(res);
 
   if (!res.ok) {
-    throw new ApolloApiError(`Apollo respondeu ${res.status} ao buscar pessoas`, res.status, parsed);
+    throw apolloError("buscar pessoas", res, parsed);
   }
   if (typeof parsed === "string") {
     throw new ApolloApiError(
@@ -385,7 +408,7 @@ export async function requestPhoneReveal(
   const parsed = await parseResponseBody(res);
 
   if (!res.ok) {
-    throw new ApolloApiError(`Apollo respondeu ${res.status} ao pedir o telefone`, res.status, parsed);
+    throw apolloError("pedir o telefone", res, parsed);
   }
   if (typeof parsed === "string") {
     throw new ApolloApiError(
