@@ -13,6 +13,8 @@ export type WhatsAppConfig = {
 export type ApolloConfig = {
   apiKey: string;
   baseUrl: string;
+  /** Token gerado automaticamente pra validar o webhook de revelação de telefone. */
+  webhookToken: string;
 };
 
 export const PROVIDERS = {

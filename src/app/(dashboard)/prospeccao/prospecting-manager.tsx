@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { EMPLOYEE_RANGES, DEFAULT_EMPLOYEE_RANGES, CART_PLATFORMS } from "@/lib/integrations/apollo";
+import { ContactsPanel } from "./contacts-panel";
 
 const DEFAULT_CART_PLATFORMS = ["Shopify", "Nuvemshop", "VTEX", "Loja Integrada", "Tray Commerce", "WooCommerce"];
 
@@ -61,6 +62,7 @@ export function ProspectingManager() {
   const [loadingList, setLoadingList] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [sizeFilter, setSizeFilter] = useState("");
+  const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
 
   async function loadCompanies() {
     setLoadingList(true);
@@ -268,13 +270,16 @@ export function ProspectingManager() {
                   <th className="py-2 pr-3 font-medium">Plataforma</th>
                   <th className="py-2 pr-3 font-medium">Local</th>
                   <th className="py-2 pr-3 font-medium">Status</th>
+                  <th className="py-2 pr-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
                 {companies.map((c) => {
                   const badge = sizeBadge(c.employeeCount);
+                  const expanded = expandedCompanyId === c.id;
                   return (
-                    <tr key={c.id} className="border-b border-slate-900 align-top">
+                    <Fragment key={c.id}>
+                    <tr className="border-b border-slate-900 align-top">
                       <td className="py-3 pr-3">
                         <p className="font-medium text-slate-100">{c.name}</p>
                         <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-slate-500">
@@ -335,7 +340,24 @@ export function ProspectingManager() {
                           ))}
                         </select>
                       </td>
+                      <td className="py-3 pr-3">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedCompanyId(expanded ? null : c.id)}
+                          className="rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-300 transition hover:border-brand hover:text-brand"
+                        >
+                          {expanded ? "Fechar" : "Decisores"}
+                        </button>
+                      </td>
                     </tr>
+                    {expanded && (
+                      <tr>
+                        <td colSpan={6} className="p-0">
+                          <ContactsPanel companyId={c.id} />
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })}
               </tbody>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/api-auth";
 import { getIntegration, getIntegrationConfig, saveIntegrationConfig, PROVIDERS } from "@/lib/integrations/settings";
@@ -94,9 +95,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    const existingApollo = await getIntegrationConfig<ApolloConfig>(PROVIDERS.APOLLO);
     const config: ApolloConfig = {
       apiKey: parsed.data.apiKey,
       baseUrl: parsed.data.baseUrl || "https://api.apollo.io/api/v1",
+      webhookToken: existingApollo?.webhookToken || crypto.randomBytes(24).toString("hex"),
     };
     await saveIntegrationConfig(PROVIDERS.APOLLO, config, true);
     return NextResponse.json({ ok: true });

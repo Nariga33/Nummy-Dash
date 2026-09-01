@@ -245,6 +245,187 @@ export async function searchAllOrganizations(
   return { organizations, totalEntries };
 }
 
+export type NormalizedPerson = {
+  apolloPersonId: string;
+  name: string;
+  title: string | null;
+  seniority: string | null;
+  linkedinUrl: string | null;
+  organizationApolloId: string | null;
+  organizationName: string | null;
+  email: string | null;
+  raw: unknown;
+};
+
+export type SearchPeopleParams = {
+  config: ApolloConfig;
+  organizationApolloIds?: string[];
+  titles?: string[];
+  keywords?: string;
+  seniorities?: string[];
+  page?: number;
+  perPage?: number;
+};
+
+type ApolloPeopleSearchResponse = {
+  people?: unknown[];
+  contacts?: unknown[];
+  pagination?: { total_entries?: number; total_pages?: number };
+};
+
+/**
+ * Busca decisores (pessoas) por cargo e/ou nome, opcionalmente restrita às
+ * empresas informadas. Nunca traz telefone — a busca de pessoas do Apollo não
+ * devolve contato direto, só o perfil (ver revealPersonPhone).
+ */
+export async function searchPeoplePage(
+  params: SearchPeopleParams
+): Promise<{ items: unknown[]; totalEntries: number; totalPages: number }> {
+  const { config, organizationApolloIds = [], titles = [], keywords, seniorities = [], page = 1, perPage = 25 } =
+    params;
+  const baseUrl = config.baseUrl || DEFAULT_BASE_URL;
+  const body: Record<string, unknown> = { page, per_page: perPage };
+  if (organizationApolloIds.length > 0) body.organization_ids = organizationApolloIds;
+  if (titles.length > 0) body.person_titles = titles;
+  if (keywords) body.q_keywords = keywords;
+  if (seniorities.length > 0) body.person_seniorities = seniorities;
+
+  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/mixed_people/search`, {
+    method: "POST",
+    headers: buildHeaders(config.apiKey),
+    body: JSON.stringify(body),
+  });
+  const parsed = await parseResponseBody(res);
+
+  if (!res.ok) {
+    throw new ApolloApiError(`Apollo respondeu ${res.status} ao buscar pessoas`, res.status, parsed);
+  }
+  if (typeof parsed === "string") {
+    throw new ApolloApiError(
+      "Apollo respondeu com HTML em vez de JSON — verifique a Base URL configurada.",
+      res.status,
+      parsed.slice(0, 300)
+    );
+  }
+
+  const data = parsed as ApolloPeopleSearchResponse;
+  const items = data.people ?? data.contacts ?? [];
+  return {
+    items,
+    totalEntries: data.pagination?.total_entries ?? items.length,
+    totalPages: data.pagination?.total_pages ?? 1,
+  };
+}
+
+/**
+ * Normaliza uma pessoa crua do Apollo. Único lugar a ajustar se os nomes de
+ * campo reais divergirem — sobrenome pode vir mascarado dependendo do plano
+ * (ex: "Silva" vira "S."), isso é esperado e só é resolvido revelando o contato.
+ */
+export function normalizePerson(raw: unknown): NormalizedPerson | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+
+  const apolloPersonId = pickString(obj, ["id"]);
+  const firstName = pickString(obj, ["first_name"]);
+  const lastName = pickString(obj, ["last_name"]);
+  const name = pickString(obj, ["name"]) ?? [firstName, lastName].filter(Boolean).join(" ");
+  if (!apolloPersonId || !name) return null;
+
+  const org = obj["organization"];
+  const orgObj = org && typeof org === "object" ? (org as Record<string, unknown>) : {};
+
+  return {
+    apolloPersonId,
+    name,
+    title: pickString(obj, ["title"]),
+    seniority: pickString(obj, ["seniority"]),
+    linkedinUrl: pickString(obj, ["linkedin_url"]),
+    organizationApolloId: pickString(obj, ["organization_id"]) ?? pickString(orgObj, ["id"]),
+    organizationName: pickString(obj, ["organization_name"]) ?? pickString(orgObj, ["name"]),
+    email: pickString(obj, ["email"]),
+    raw,
+  };
+}
+
+export type RequestPhoneRevealParams = {
+  config: ApolloConfig;
+  apolloPersonId: string;
+  webhookUrl: string;
+};
+
+/**
+ * Pede a revelação assíncrona do telefone de uma pessoa (People Match com
+ * reveal_phone_number). Segundo a documentação do Apollo, essa chamada NÃO
+ * devolve o número na hora — ela dispara a verificação e o Apollo envia o
+ * resultado depois via POST em `webhookUrl` (normalmente poucos segundos a
+ * poucos minutos depois). Consome crédito Apollo por revelação bem-sucedida.
+ *
+ * Este fluxo (o parâmetro `webhook_url` e o formato do callback) segue a
+ * documentação pública do Apollo mas NÃO foi testado com uma chamada real
+ * nesta sessão — diferente do restante do cliente Apollo, que foi validado.
+ * Confira o payload que chega em /api/webhooks/apollo-phone (ele é logado)
+ * na primeira revelação real e ajuste normalizePhoneWebhook se precisar.
+ */
+export async function requestPhoneReveal(
+  params: RequestPhoneRevealParams
+): Promise<{ requestId: string | null; raw: unknown }> {
+  const { config, apolloPersonId, webhookUrl } = params;
+  const baseUrl = config.baseUrl || DEFAULT_BASE_URL;
+
+  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/people/match`, {
+    method: "POST",
+    headers: buildHeaders(config.apiKey),
+    body: JSON.stringify({
+      id: apolloPersonId,
+      reveal_phone_number: true,
+      webhook_url: webhookUrl,
+    }),
+  });
+  const parsed = await parseResponseBody(res);
+
+  if (!res.ok) {
+    throw new ApolloApiError(`Apollo respondeu ${res.status} ao pedir o telefone`, res.status, parsed);
+  }
+  if (typeof parsed === "string") {
+    throw new ApolloApiError(
+      "Apollo respondeu com HTML em vez de JSON — verifique a Base URL configurada.",
+      res.status,
+      parsed.slice(0, 300)
+    );
+  }
+
+  const obj = parsed as Record<string, unknown>;
+  const requestId = pickString(obj, ["request_id", "id"]);
+  return { requestId, raw: parsed };
+}
+
+/**
+ * Normaliza o payload que o Apollo envia ao webhook depois de revelar um
+ * telefone. Formato não confirmado por chamada real — ajuste as chaves
+ * procuradas assim que um payload real chegar em produção (fica no campo
+ * `raw` da requisição pra inspeção).
+ */
+export function normalizePhoneWebhook(raw: unknown): { requestId: string | null; phone: string | null } {
+  if (!raw || typeof raw !== "object") return { requestId: null, phone: null };
+  const obj = raw as Record<string, unknown>;
+
+  const requestId = pickString(obj, ["request_id", "id"]);
+
+  const phoneNumbers = obj["phone_numbers"];
+  let phone: string | null = null;
+  if (Array.isArray(phoneNumbers) && phoneNumbers.length > 0) {
+    const first = phoneNumbers[0];
+    if (typeof first === "string") phone = first;
+    else if (first && typeof first === "object") {
+      phone = pickString(first as Record<string, unknown>, ["sanitized_number", "raw_number", "number"]);
+    }
+  }
+  phone = phone ?? pickString(obj, ["phone_number", "phone"]);
+
+  return { requestId, phone };
+}
+
 function pickString(obj: Record<string, unknown>, keys: string[]): string | null {
   for (const key of keys) {
     const value = obj[key];

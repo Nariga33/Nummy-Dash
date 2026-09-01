@@ -113,6 +113,29 @@ plataforma como sinais.
 Para conectar: em **Integrações**, cole a API key do Apollo (Settings → API
 no painel do Apollo) e clique em "Testar conexão".
 
+#### Decisores e telefone
+
+Em cada empresa da lista, o botão **Decisores** abre uma busca de pessoas por
+cargo e/ou nome (ex: "Sócio, Fundador, CEO, Diretor" ou o nome de alguém),
+igual à busca de pessoas do próprio Apollo — mas já restrita àquela empresa.
+A busca de pessoas do Apollo nunca devolve telefone direto; por isso cada
+decisor tem um botão **Revelar telefone**, que:
+
+1. Pede confirmação (a revelação consome 1 crédito Apollo por decisor).
+2. Dispara a revelação, que é **assíncrona** — o Apollo não devolve o número
+   na hora, ele confirma depois via webhook (`/api/webhooks/apollo-phone`,
+   autenticado por um token gerado automaticamente ao salvar a chave do
+   Apollo). O decisor fica "Pendente" até o webhook chegar (segundos a poucos
+   minutos) — atualize a página pra ver o número.
+
+E-mail não é o foco (o time não usa muito) — a tela não pede revelação de
+e-mail, só telefone. O formato exato do payload do webhook do Apollo ainda
+não foi confirmado com uma revelação real nesta sessão (só a busca de
+empresas foi validada com uma chamada real) — o payload recebido é logado no
+servidor pra ajustar `normalizePhoneWebhook` em
+`src/lib/integrations/apollo.ts` assim que a primeira revelação real
+acontecer.
+
 Validado com uma busca real: Brasil + 1–50 funcionários + qualquer uma das
 tecnologias retornou 6.293 empresas — confirma que a lacuna existe e é
 grande. Os slugs de tecnologia confirmados nessa busca foram `shopify`,
