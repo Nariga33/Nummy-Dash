@@ -104,6 +104,11 @@ model ProspectCompany {
   country            String?
   technologies       String          @default("[]")
   ecommercePlatforms String          @default("[]")
+  cnpj               String?         @unique
+  cnpjStatus         String?
+  cnpjStatusDate     DateTime?
+  cnpjPartners       String          @default("[]")
+  cnpjLookedUpAt     DateTime?
   status             ProspectStatus  @default(NOVO)
   notes              String?
   source             String          @default("apollo")

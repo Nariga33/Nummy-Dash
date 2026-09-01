@@ -9,6 +9,7 @@ import {
 } from "@/lib/integrations/apollo";
 import { ContactsPanel } from "./contacts-panel";
 import { CompaniesKanban } from "./companies-kanban";
+import { CnpjPanel } from "./cnpj-panel";
 
 type Company = {
   id: string;
@@ -24,6 +25,10 @@ type Company = {
   ecommercePlatforms: string[];
   status: "NOVO" | "CONTATADO" | "QUALIFICADO" | "DESCARTADO";
   notes: string | null;
+  cnpj: string | null;
+  cnpjStatus: string | null;
+  cnpjStatusDate: string | null;
+  cnpjPartners: { name: string; role: string | null }[];
 };
 
 const STATUS_LABELS: Record<Company["status"], string> = {
@@ -141,6 +146,10 @@ export function ProspectingManager() {
       const json = await res.json();
       setCompanies((prev) => prev.map((c) => (c.id === id ? { ...c, ...json.company } : c)));
     }
+  }
+
+  function applyCompanyUpdate(id: string, data: Partial<Company>) {
+    setCompanies((prev) => prev.map((c) => (c.id === id ? { ...c, ...data } : c)));
   }
 
   return (
@@ -390,6 +399,7 @@ export function ProspectingManager() {
                     {expanded && (
                       <tr>
                         <td colSpan={6} className="p-0">
+                          <CnpjPanel company={c} onUpdated={applyCompanyUpdate} />
                           <ContactsPanel companyId={c.id} />
                         </td>
                       </tr>

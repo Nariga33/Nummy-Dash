@@ -119,6 +119,11 @@ CREATE TABLE IF NOT EXISTS "ProspectCompany" (
     "country" TEXT,
     "technologies" TEXT NOT NULL DEFAULT '[]',
     "ecommercePlatforms" TEXT NOT NULL DEFAULT '[]',
+    "cnpj" TEXT,
+    "cnpjStatus" TEXT,
+    "cnpjStatusDate" TIMESTAMP(3),
+    "cnpjPartners" TEXT NOT NULL DEFAULT '[]',
+    "cnpjLookedUpAt" TIMESTAMP(3),
     "status" "ProspectStatus" NOT NULL DEFAULT 'NOVO',
     "notes" TEXT,
     "source" TEXT NOT NULL DEFAULT 'apollo',
@@ -128,6 +133,15 @@ CREATE TABLE IF NOT EXISTS "ProspectCompany" (
 
     CONSTRAINT "ProspectCompany_pkey" PRIMARY KEY ("id")
 );
+
+-- Colunas de CNPJ podem não existir ainda se a tabela ProspectCompany já foi
+-- criada por um deploy anterior (CREATE TABLE IF NOT EXISTS acima não altera
+-- tabela existente) — adiciona de forma idempotente.
+ALTER TABLE "ProspectCompany" ADD COLUMN IF NOT EXISTS "cnpj" TEXT;
+ALTER TABLE "ProspectCompany" ADD COLUMN IF NOT EXISTS "cnpjStatus" TEXT;
+ALTER TABLE "ProspectCompany" ADD COLUMN IF NOT EXISTS "cnpjStatusDate" TIMESTAMP(3);
+ALTER TABLE "ProspectCompany" ADD COLUMN IF NOT EXISTS "cnpjPartners" TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE "ProspectCompany" ADD COLUMN IF NOT EXISTS "cnpjLookedUpAt" TIMESTAMP(3);
 
 CREATE TABLE IF NOT EXISTS "ProspectContact" (
     "id" TEXT NOT NULL,
@@ -152,6 +166,7 @@ CREATE TABLE IF NOT EXISTS "ProspectContact" (
 
 CREATE UNIQUE INDEX IF NOT EXISTS "ProspectCompany_apolloOrgId_key" ON "ProspectCompany"("apolloOrgId");
 CREATE UNIQUE INDEX IF NOT EXISTS "ProspectCompany_domain_key" ON "ProspectCompany"("domain");
+CREATE UNIQUE INDEX IF NOT EXISTS "ProspectCompany_cnpj_key" ON "ProspectCompany"("cnpj");
 CREATE INDEX IF NOT EXISTS "ProspectCompany_status_idx" ON "ProspectCompany"("status");
 CREATE INDEX IF NOT EXISTS "ProspectCompany_employeeCount_idx" ON "ProspectCompany"("employeeCount");
 CREATE INDEX IF NOT EXISTS "ProspectCompany_createdAt_idx" ON "ProspectCompany"("createdAt");

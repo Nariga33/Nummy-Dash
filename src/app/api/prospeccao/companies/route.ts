@@ -33,6 +33,7 @@ export async function GET(request: Request) {
       ...c,
       technologies: JSON.parse(c.technologies) as string[],
       ecommercePlatforms: JSON.parse(c.ecommercePlatforms) as string[],
+      cnpjPartners: JSON.parse(c.cnpjPartners) as { name: string; role: string | null }[],
     })),
   });
 }

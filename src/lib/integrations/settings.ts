@@ -17,10 +17,16 @@ export type ApolloConfig = {
   webhookToken: string;
 };
 
+export type CnpjaConfig = {
+  apiKey: string;
+  baseUrl: string;
+};
+
 export const PROVIDERS = {
   API4COM: "api4com",
   WHATSAPP: "whatsapp",
   APOLLO: "apollo",
+  CNPJA: "cnpja",
 } as const;
 
 export async function getIntegration(provider: string) {

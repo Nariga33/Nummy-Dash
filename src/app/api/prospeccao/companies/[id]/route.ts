@@ -30,6 +30,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         ...company,
         technologies: JSON.parse(company.technologies) as string[],
         ecommercePlatforms: JSON.parse(company.ecommercePlatforms) as string[],
+        cnpjPartners: JSON.parse(company.cnpjPartners) as { name: string; role: string | null }[],
       },
     });
   } catch {
