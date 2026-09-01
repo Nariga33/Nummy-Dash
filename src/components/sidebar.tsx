@@ -7,6 +7,7 @@ import { LogoMark } from "@/components/logo-mark";
 
 const navItems = [
   { href: "/", label: "Visão geral", adminOnly: false },
+  { href: "/prospeccao", label: "Prospecção", adminOnly: false },
   { href: "/settings/integrations", label: "Integrações", adminOnly: true },
   { href: "/settings/users", label: "Usuários", adminOnly: true },
 ];

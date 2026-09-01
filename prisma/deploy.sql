@@ -75,3 +75,115 @@ CREATE UNIQUE INDEX IF NOT EXISTS "CallRecord_externalId_key" ON "CallRecord"("e
 CREATE INDEX IF NOT EXISTS "CallRecord_startedAt_idx" ON "CallRecord"("startedAt");
 CREATE UNIQUE INDEX IF NOT EXISTS "WhatsAppMessage_externalId_key" ON "WhatsAppMessage"("externalId");
 CREATE INDEX IF NOT EXISTS "WhatsAppMessage_sentAt_idx" ON "WhatsAppMessage"("sentAt");
+
+-- Módulo de Prospecção (migrations 20260901124715_prospecting_module e
+-- 20260901131202_prospecting_contacts), no mesmo padrão idempotente acima.
+
+DO $$ BEGIN
+    CREATE TYPE "ProspectStatus" AS ENUM ('NOVO', 'CONTATADO', 'QUALIFICADO', 'DESCARTADO');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "ContactPhoneStatus" AS ENUM ('NAO_SOLICITADO', 'PENDENTE', 'DISPONIVEL', 'INDISPONIVEL');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "ProspectSearch" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "employeeRanges" TEXT NOT NULL,
+    "technologies" TEXT NOT NULL,
+    "locations" TEXT NOT NULL,
+    "keywords" TEXT,
+    "resultsCount" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ProspectSearch_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "ProspectCompany" (
+    "id" TEXT NOT NULL,
+    "apolloOrgId" TEXT,
+    "domain" TEXT,
+    "name" TEXT NOT NULL,
+    "linkedinUrl" TEXT,
+    "websiteUrl" TEXT,
+    "employeeCount" INTEGER,
+    "employeeRange" TEXT,
+    "industry" TEXT,
+    "city" TEXT,
+    "state" TEXT,
+    "country" TEXT,
+    "technologies" TEXT NOT NULL DEFAULT '[]',
+    "ecommercePlatforms" TEXT NOT NULL DEFAULT '[]',
+    "cnpj" TEXT,
+    "cnpjStatus" TEXT,
+    "cnpjStatusDate" TIMESTAMP(3),
+    "cnpjPartners" TEXT NOT NULL DEFAULT '[]',
+    "cnpjLookedUpAt" TIMESTAMP(3),
+    "status" "ProspectStatus" NOT NULL DEFAULT 'NOVO',
+    "notes" TEXT,
+    "source" TEXT NOT NULL DEFAULT 'apollo',
+    "searchId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ProspectCompany_pkey" PRIMARY KEY ("id")
+);
+
+-- Colunas de CNPJ podem não existir ainda se a tabela ProspectCompany já foi
+-- criada por um deploy anterior (CREATE TABLE IF NOT EXISTS acima não altera
+-- tabela existente) — adiciona de forma idempotente.
+ALTER TABLE "ProspectCompany" ADD COLUMN IF NOT EXISTS "cnpj" TEXT;
+ALTER TABLE "ProspectCompany" ADD COLUMN IF NOT EXISTS "cnpjStatus" TEXT;
+ALTER TABLE "ProspectCompany" ADD COLUMN IF NOT EXISTS "cnpjStatusDate" TIMESTAMP(3);
+ALTER TABLE "ProspectCompany" ADD COLUMN IF NOT EXISTS "cnpjPartners" TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE "ProspectCompany" ADD COLUMN IF NOT EXISTS "cnpjLookedUpAt" TIMESTAMP(3);
+
+CREATE TABLE IF NOT EXISTS "ProspectContact" (
+    "id" TEXT NOT NULL,
+    "apolloPersonId" TEXT,
+    "companyId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "title" TEXT,
+    "seniority" TEXT,
+    "linkedinUrl" TEXT,
+    "email" TEXT,
+    "phone" TEXT,
+    "phoneStatus" "ContactPhoneStatus" NOT NULL DEFAULT 'NAO_SOLICITADO',
+    "phoneRequestId" TEXT,
+    "status" "ProspectStatus" NOT NULL DEFAULT 'NOVO',
+    "notes" TEXT,
+    "source" TEXT NOT NULL DEFAULT 'apollo',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ProspectContact_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "ProspectCompany_apolloOrgId_key" ON "ProspectCompany"("apolloOrgId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ProspectCompany_domain_key" ON "ProspectCompany"("domain");
+CREATE UNIQUE INDEX IF NOT EXISTS "ProspectCompany_cnpj_key" ON "ProspectCompany"("cnpj");
+CREATE INDEX IF NOT EXISTS "ProspectCompany_status_idx" ON "ProspectCompany"("status");
+CREATE INDEX IF NOT EXISTS "ProspectCompany_employeeCount_idx" ON "ProspectCompany"("employeeCount");
+CREATE INDEX IF NOT EXISTS "ProspectCompany_createdAt_idx" ON "ProspectCompany"("createdAt");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "ProspectContact_apolloPersonId_key" ON "ProspectContact"("apolloPersonId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ProspectContact_phoneRequestId_key" ON "ProspectContact"("phoneRequestId");
+CREATE INDEX IF NOT EXISTS "ProspectContact_companyId_idx" ON "ProspectContact"("companyId");
+CREATE INDEX IF NOT EXISTS "ProspectContact_status_idx" ON "ProspectContact"("status");
+
+DO $$ BEGIN
+    ALTER TABLE "ProspectCompany" ADD CONSTRAINT "ProspectCompany_searchId_fkey" FOREIGN KEY ("searchId") REFERENCES "ProspectSearch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE "ProspectContact" ADD CONSTRAINT "ProspectContact_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "ProspectCompany"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
