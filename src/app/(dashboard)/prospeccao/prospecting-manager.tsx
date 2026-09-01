@@ -118,12 +118,8 @@ export function ProspectingManager() {
       });
       const json = await res.json();
       if (res.ok) {
-        const discardedNote =
-          json.discardedByPlatformFilter > 0
-            ? ` (${json.discardedByPlatformFilter} descartadas por não ter carrinho detectado)`
-            : "";
         setSearchResult(
-          `${json.fetched} empresas com carrinho detectado${discardedNote} (${json.totalEntries} no total no Apollo) — ${json.created} novas, ${json.updated} atualizadas.`
+          `${json.fetched} empresas retornadas pelo Apollo (${json.totalEntries} no total) — ${json.created} novas, ${json.updated} atualizadas. Confirme a plataforma de carrinho abrindo o site de cada uma; o Apollo não devolve esse dado por empresa.`
         );
         await loadCompanies();
       } else {
@@ -191,9 +187,7 @@ export function ProspectingManager() {
           </div>
 
           <div>
-            <p className="mb-2 text-xs font-medium text-slate-300">
-              Plataforma de carrinho/loja (technologies detectadas pelo Apollo)
-            </p>
+            <p className="mb-2 text-xs font-medium text-slate-300">Plataforma de carrinho/loja (filtro do Apollo)</p>
             <div className="flex flex-wrap gap-2">
               {CART_PLATFORMS.map((platform) => {
                 const checked = platforms.includes(platform);
@@ -218,9 +212,10 @@ export function ProspectingManager() {
             </div>
             <p className="mt-1 text-xs text-slate-500">
               Nenhuma marcada = não filtra por plataforma (traz e-commerce e não-e-commerce). As com{" "}
-              <span className="text-amber-400">?</span> ainda não tiveram o slug confirmado no Apollo — empresas sem
-              nenhuma plataforma detectada são descartadas automaticamente quando pelo menos uma está marcada, então
-              usar só as confirmadas dá mais resultado.
+              <span className="text-amber-400">?</span> têm slug não confirmado — usar só as confirmadas garante que
+              o filtro realmente funcione. O Apollo filtra do lado dele, mas não devolve qual plataforma cada empresa
+              usa — pra confirmar, é preciso abrir o site da empresa (ou consultar o CNPJ, que traz o segmento
+              real).
             </p>
           </div>
 
@@ -313,7 +308,6 @@ export function ProspectingManager() {
                 <tr className="border-b border-slate-800 text-xs text-slate-500">
                   <th className="py-2 pr-3 font-medium">Empresa</th>
                   <th className="py-2 pr-3 font-medium">Porte</th>
-                  <th className="py-2 pr-3 font-medium">Plataforma</th>
                   <th className="py-2 pr-3 font-medium">Local</th>
                   <th className="py-2 pr-3 font-medium">Status</th>
                   <th className="py-2 pr-3 font-medium"></th>
@@ -354,22 +348,6 @@ export function ProspectingManager() {
                           </span>
                         )}
                       </td>
-                      <td className="py-3 pr-3">
-                        {c.ecommercePlatforms.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {c.ecommercePlatforms.map((p) => (
-                              <span
-                                key={p}
-                                className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300"
-                              >
-                                {p}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-600">não detectada</span>
-                        )}
-                      </td>
                       <td className="py-3 pr-3 text-xs text-slate-400">
                         {[c.city, c.state, c.country].filter(Boolean).join(", ") || "—"}
                       </td>
@@ -398,7 +376,7 @@ export function ProspectingManager() {
                     </tr>
                     {expanded && (
                       <tr>
-                        <td colSpan={6} className="p-0">
+                        <td colSpan={5} className="p-0">
                           <CnpjPanel company={c} onUpdated={applyCompanyUpdate} />
                           <ContactsPanel companyId={c.id} />
                         </td>

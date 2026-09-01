@@ -79,11 +79,6 @@ export function CompaniesKanban({
                   <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300">
                     {sizeLabel(c.employeeCount)}
                   </span>
-                  {c.ecommercePlatforms.slice(0, 2).map((p) => (
-                    <span key={p} className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300">
-                      {p}
-                    </span>
-                  ))}
                 </div>
               </div>
             ))}

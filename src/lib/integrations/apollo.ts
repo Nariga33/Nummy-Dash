@@ -519,6 +519,18 @@ function pickStringArray(obj: Record<string, unknown>, keys: string[]): string[]
  * Normaliza uma organização crua do Apollo para o formato salvo no banco.
  * Único lugar a ajustar se os nomes de campo reais divergirem do esperado —
  * use "Testar conexão" em Integrações para inspecionar a resposta bruta.
+ *
+ * IMPORTANTE (2026-09-01, confirmado com busca real): o endpoint de busca
+ * (mixed_companies/search) NÃO devolve technology_names/technologies nos
+ * resultados — esse campo simplesmente não veio em nenhum dos registros de
+ * uma busca real inspecionada. Ou seja, `ecommercePlatforms` abaixo fica
+ * sempre vazio na prática, mesmo pra empresa que realmente usa a plataforma
+ * filtrada. O filtro server-side (currently_using_any_of_technology_uids)
+ * funciona de verdade — é só a busca que não devolve o dado de volta pra
+ * exibir por empresa. NÃO usar ecommercePlatforms.length como critério de
+ * descarte (já causou um bug real: zerou toda busca). Pra mostrar a
+ * plataforma de cada empresa de verdade seria preciso uma chamada separada
+ * de Organization Enrichment por empresa (custa crédito por empresa).
  */
 export function normalizeOrganization(raw: unknown): NormalizedOrganization | null {
   if (!raw || typeof raw !== "object") return null;

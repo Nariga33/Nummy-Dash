@@ -34,21 +34,13 @@ export async function POST(request: Request) {
   const { name, employeeRanges, technologies, locations, keywords } = parsed.data;
 
   try {
-    const { organizations: allOrganizations, totalEntries } = await searchAllOrganizations({
+    const { organizations, totalEntries } = await searchAllOrganizations({
       config,
       employeeRanges,
       technologies,
       locations,
       keywords,
     });
-
-    // O filtro de tecnologia do Apollo não é confiável quando algum slug não é
-    // reconhecido (vira um no-op silencioso — foi o que trouxe empresa sem
-    // carrinho nenhum na busca). Quando o usuário pediu filtro por plataforma,
-    // reforça aqui: só entra quem realmente teve uma plataforma detectada.
-    const organizations =
-      technologies.length > 0 ? allOrganizations.filter((org) => org.ecommercePlatforms.length > 0) : allOrganizations;
-    const discardedByPlatformFilter = allOrganizations.length - organizations.length;
 
     const search = await prisma.prospectSearch.create({
       data: {
@@ -104,7 +96,6 @@ export async function POST(request: Request) {
       searchId: search.id,
       totalEntries,
       fetched: organizations.length,
-      discardedByPlatformFilter,
       created,
       updated,
     });
