@@ -66,3 +66,53 @@ model WhatsAppMessage {
 
   @@index([sentAt])
 }
+
+enum ProspectStatus {
+  NOVO
+  CONTATADO
+  QUALIFICADO
+  DESCARTADO
+}
+
+/// Uma busca configurada e disparada contra o Apollo (filtros usados + quando rodou).
+model ProspectSearch {
+  id             String            @id @default(cuid())
+  name           String
+  employeeRanges String
+  technologies   String
+  locations      String
+  keywords       String?
+  resultsCount   Int               @default(0)
+  createdAt      DateTime          @default(now())
+  companies      ProspectCompany[]
+}
+
+/// Empresa de e-commerce prospectada (via Apollo ou lançamento manual), com o
+/// carrinho/plataforma detectado e o status no funil de prospecção.
+model ProspectCompany {
+  id                 String          @id @default(cuid())
+  apolloOrgId        String?         @unique
+  domain             String?         @unique
+  name               String
+  linkedinUrl        String?
+  websiteUrl         String?
+  employeeCount      Int?
+  employeeRange      String?
+  industry           String?
+  city               String?
+  state              String?
+  country            String?
+  technologies       String          @default("[]")
+  ecommercePlatforms String          @default("[]")
+  status             ProspectStatus  @default(NOVO)
+  notes              String?
+  source             String          @default("apollo")
+  searchId           String?
+  search             ProspectSearch? @relation(fields: [searchId], references: [id])
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([status])
+  @@index([employeeCount])
+  @@index([createdAt])
+}

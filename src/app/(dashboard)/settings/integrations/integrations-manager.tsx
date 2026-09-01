@@ -19,6 +19,14 @@ type IntegrationsStatus = {
     webhookTokenMasked: string | null;
     webhookUrl: string;
   };
+  apollo: {
+    enabled: boolean;
+    lastSyncAt: string | null;
+    lastStatus: string | null;
+    lastError: string | null;
+    apiKeyMasked: string | null;
+    baseUrl: string;
+  };
 };
 
 function StatusPill({ status }: { status: string | null }) {
@@ -45,6 +53,11 @@ export function IntegrationsManager() {
   const [webhookToken, setWebhookToken] = useState("");
   const [savingWhatsapp, setSavingWhatsapp] = useState(false);
   const [saveWhatsappError, setSaveWhatsappError] = useState<string | null>(null);
+
+  const [apolloApiKey, setApolloApiKey] = useState("");
+  const [savingApollo, setSavingApollo] = useState(false);
+  const [saveApolloError, setSaveApolloError] = useState<string | null>(null);
+  const [apolloTestResult, setApolloTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const [manualDate, setManualDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [manualCount, setManualCount] = useState(0);
@@ -135,6 +148,38 @@ export function IntegrationsManager() {
     }
   }
 
+  async function saveApollo(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingApollo(true);
+    setApolloTestResult(null);
+    setSaveApolloError(null);
+    try {
+      const res = await fetch("/api/settings/integrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "apollo", apiKey: apolloApiKey }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setApolloApiKey("");
+        await loadStatus();
+      } else {
+        setSaveApolloError(json.error ?? "Erro ao salvar a chave.");
+      }
+    } catch {
+      setSaveApolloError("Erro de rede ao salvar a chave.");
+    } finally {
+      setSavingApollo(false);
+    }
+  }
+
+  async function testApolloConn() {
+    setApolloTestResult(null);
+    const res = await fetch("/api/settings/integrations/test-apollo", { method: "POST" });
+    const json = await res.json();
+    setApolloTestResult({ ok: res.ok, message: res.ok ? "Conexão OK." : json.error ?? "Falha ao conectar." });
+  }
+
   async function submitManual(e: React.FormEvent) {
     e.preventDefault();
     setManualSaving(true);
@@ -212,6 +257,55 @@ export function IntegrationsManager() {
           <p className={`mt-3 text-xs ${testResult.ok ? "text-emerald-400" : "text-red-400"}`}>{testResult.message}</p>
         )}
         {syncResult && <p className="mt-2 text-xs text-slate-400">{syncResult}</p>}
+      </section>
+
+      <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-200">Apollo · Prospecção</h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Chave atual: {status?.apollo.apiKeyMasked ?? "não configurada"} · última busca:{" "}
+              {status?.apollo.lastSyncAt ? new Date(status.apollo.lastSyncAt).toLocaleString("pt-BR") : "nunca"}{" "}
+              <StatusPill status={status?.apollo.lastStatus ?? null} />
+            </p>
+            {status?.apollo.lastError && <p className="mt-1 text-xs text-red-400">{status.apollo.lastError}</p>}
+          </div>
+        </div>
+
+        <form onSubmit={saveApollo} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <input
+            required
+            placeholder="Chave da API (API Key)"
+            value={apolloApiKey}
+            onChange={(e) => setApolloApiKey(e.target.value)}
+            className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand sm:col-span-2"
+          />
+          <button
+            type="submit"
+            disabled={savingApollo}
+            className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover disabled:opacity-60"
+          >
+            {savingApollo ? "Salvando..." : "Salvar chave"}
+          </button>
+          <button
+            type="button"
+            onClick={testApolloConn}
+            className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 hover:border-slate-500"
+          >
+            Testar conexão
+          </button>
+        </form>
+        {saveApolloError && <p className="mt-3 text-xs text-red-400">{saveApolloError}</p>}
+        {apolloTestResult && (
+          <p className={`mt-3 text-xs ${apolloTestResult.ok ? "text-emerald-400" : "text-red-400"}`}>
+            {apolloTestResult.message}
+          </p>
+        )}
+        <p className="mt-3 text-xs text-slate-500">
+          Com a chave conectada, use a tela <span className="text-slate-300">Prospecção</span> para buscar empresas
+          de e-commerce — as faixas pequenas de funcionários (1–10, 11–20...) vêm marcadas por padrão, já que é
+          exatamente aí que a busca direto no Apollo costuma deixar passar empresas.
+        </p>
       </section>
 
       <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-5">

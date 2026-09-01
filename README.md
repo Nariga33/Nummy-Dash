@@ -1,9 +1,9 @@
 # Outbound Dashboard
 
 Dashboard gerencial de operação outbound: acompanha quantidade de ligações
-(via API4COM) e quantidade de mensagens WhatsApp encaminhadas, com login por
-e-mail e senha (contas criadas apenas por administradores, sem cadastro
-público).
+(via API4COM), quantidade de mensagens WhatsApp encaminhadas e prospecção de
+empresas de e-commerce via Apollo, com login por e-mail e senha (contas
+criadas apenas por administradores, sem cadastro público).
 
 ## Stack
 
@@ -82,6 +82,36 @@ o dashboard de duas formas:
 2. **Lançamento manual** — enquanto nenhuma API está conectada, um admin
    pode registrar a quantidade de mensagens de um dia diretamente na tela
    Integrações.
+
+### Prospecção — Apollo (empresas de e-commerce)
+
+Tela **Prospecção** (`/prospeccao`) para buscar lojas online direto no
+Apollo, endereçando dois problemas específicos:
+
+1. **Empresas pequenas somem da busca.** Filtrando direto na UI do Apollo é
+   fácil esquecer de marcar as faixas pequenas de funcionários (1–10,
+   11–20), então o resultado fica dominado por empresas grandes. Aqui a
+   busca sempre manda faixas explícitas para a API — nunca "todas" — e as
+   faixas pequenas (1–10, 11–20, 21–50, 51–100) já vêm marcadas por padrão.
+   Essa é justamente a lacuna que o concorrente interno, focado nas
+   empresas grandes, deixa aberta — o ICP daqui começa nesse porte menor.
+2. **Precisa ser e-commerce com carrinho ativo.** A busca filtra por
+   `technology_names` do Apollo, reconhecendo plataformas de carrinho
+   (Shopify, Nuvemshop, VTEX, Loja Integrada, Tray, WooCommerce, Magento,
+   BigCommerce, Wake, Linx, Vnda, Yampi, Wix Stores, PrestaShop, OpenCart,
+   Cartpanda, Salesforce Commerce Cloud). Cada empresa retornada mostra a(s)
+   plataforma(s) detectada(s) — se nenhuma vier marcada na busca, o filtro
+   de tecnologia fica desligado e traz e-commerce e não-e-commerce juntos.
+
+Cada empresa encontrada é salva com link do site e do LinkedIn, porte
+(nº de funcionários), local e um status de funil (Novo → Contatado →
+Qualificado/Descartado) que pode ser atualizado direto na tabela. O Apollo
+não expõe faturamento em reais de forma confiável — o corte de R$ 50 mil/mês
+do ICP entra como critério manual na hora de qualificar, usando porte e
+plataforma como sinais.
+
+Para conectar: em **Integrações**, cole a API key do Apollo (Settings → API
+no painel do Apollo) e clique em "Testar conexão".
 
 ## Usuários
 

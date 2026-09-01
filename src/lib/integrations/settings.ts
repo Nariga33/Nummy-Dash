@@ -10,9 +10,15 @@ export type WhatsAppConfig = {
   webhookToken: string;
 };
 
+export type ApolloConfig = {
+  apiKey: string;
+  baseUrl: string;
+};
+
 export const PROVIDERS = {
   API4COM: "api4com",
   WHATSAPP: "whatsapp",
+  APOLLO: "apollo",
 } as const;
 
 export async function getIntegration(provider: string) {
