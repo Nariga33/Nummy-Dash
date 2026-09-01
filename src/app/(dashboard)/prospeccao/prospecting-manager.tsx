@@ -73,6 +73,8 @@ export function ProspectingManager() {
   const [sizeFilter, setSizeFilter] = useState("");
   const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
   const [view, setView] = useState<"table" | "kanban">("table");
+  const [platformCheckedIds, setPlatformCheckedIds] = useState<Set<string>>(new Set());
+  const [checkingPlatformId, setCheckingPlatformId] = useState<string | null>(null);
 
   async function loadCompanies() {
     setLoadingList(true);
@@ -148,6 +150,22 @@ export function ProspectingManager() {
     setCompanies((prev) => prev.map((c) => (c.id === id ? { ...c, ...data } : c)));
   }
 
+  async function checkPlatform(id: string) {
+    setCheckingPlatformId(id);
+    try {
+      const res = await fetch(`/api/prospeccao/companies/${id}/detect-platform`, { method: "POST" });
+      const json = await res.json();
+      if (res.ok) {
+        applyCompanyUpdate(id, { ecommercePlatforms: json.company.ecommercePlatforms });
+        setPlatformCheckedIds((prev) => new Set(prev).add(id));
+      } else {
+        window.alert(json.error ?? "Erro ao verificar o carrinho.");
+      }
+    } finally {
+      setCheckingPlatformId(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
@@ -214,8 +232,8 @@ export function ProspectingManager() {
               Nenhuma marcada = não filtra por plataforma (traz e-commerce e não-e-commerce). As com{" "}
               <span className="text-amber-400">?</span> têm slug não confirmado — usar só as confirmadas garante que
               o filtro realmente funcione. O Apollo filtra do lado dele, mas não devolve qual plataforma cada empresa
-              usa — pra confirmar, é preciso abrir o site da empresa (ou consultar o CNPJ, que traz o segmento
-              real).
+              usa — depois da busca, use o botão &quot;Verificar carrinho&quot; na tabela pra visitar o site de cada
+              empresa e identificar a plataforma de verdade.
             </p>
           </div>
 
@@ -308,6 +326,7 @@ export function ProspectingManager() {
                 <tr className="border-b border-slate-800 text-xs text-slate-500">
                   <th className="py-2 pr-3 font-medium">Empresa</th>
                   <th className="py-2 pr-3 font-medium">Porte</th>
+                  <th className="py-2 pr-3 font-medium">Plataforma</th>
                   <th className="py-2 pr-3 font-medium">Local</th>
                   <th className="py-2 pr-3 font-medium">Status</th>
                   <th className="py-2 pr-3 font-medium"></th>
@@ -317,6 +336,7 @@ export function ProspectingManager() {
                 {companies.map((c) => {
                   const badge = sizeBadge(c.employeeCount);
                   const expanded = expandedCompanyId === c.id;
+                  const platformChecked = platformCheckedIds.has(c.id) || c.ecommercePlatforms.length > 0;
                   return (
                     <Fragment key={c.id}>
                     <tr className="border-b border-slate-900 align-top">
@@ -348,6 +368,29 @@ export function ProspectingManager() {
                           </span>
                         )}
                       </td>
+                      <td className="py-3 pr-3">
+                        {c.ecommercePlatforms.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {c.ecommercePlatforms.map((p) => (
+                              <span key={p} className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-400">
+                                {p}
+                              </span>
+                            ))}
+                          </div>
+                        ) : platformChecked ? (
+                          <span className="text-xs text-slate-600">nenhuma identificada</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => checkPlatform(c.id)}
+                            disabled={checkingPlatformId === c.id || !c.domain}
+                            title={c.domain ? undefined : "Sem domínio salvo"}
+                            className="rounded-full border border-slate-700 px-2.5 py-1 text-[10px] font-medium text-slate-300 transition hover:border-brand hover:text-brand disabled:opacity-60"
+                          >
+                            {checkingPlatformId === c.id ? "Verificando..." : "Verificar carrinho"}
+                          </button>
+                        )}
+                      </td>
                       <td className="py-3 pr-3 text-xs text-slate-400">
                         {[c.city, c.state, c.country].filter(Boolean).join(", ") || "—"}
                       </td>
@@ -376,7 +419,7 @@ export function ProspectingManager() {
                     </tr>
                     {expanded && (
                       <tr>
-                        <td colSpan={5} className="p-0">
+                        <td colSpan={6} className="p-0">
                           <CnpjPanel company={c} onUpdated={applyCompanyUpdate} />
                           <ContactsPanel companyId={c.id} />
                         </td>
