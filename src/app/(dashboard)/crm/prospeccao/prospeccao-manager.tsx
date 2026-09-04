@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
+import { Upload, Plus, X, Search, Trash2, CheckCircle2 } from "lucide-react";
+import { initials } from "@/lib/crm";
 
 type Contact = {
   id: string;
@@ -28,29 +30,27 @@ function Modal({
   children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-          <h3 className="text-sm font-semibold text-slate-100">{title}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-white/[0.08] bg-slate-900 shadow-[0_24px_64px_rgba(0,0,0,0.6)]">
+        <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
+          <h3 className="text-base font-semibold tracking-tight text-white">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-slate-500 transition hover:bg-slate-800 hover:text-slate-300"
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/[0.08] hover:text-white"
             aria-label="Fechar"
           >
-            <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="overflow-y-auto px-6 py-5">{children}</div>
       </div>
     </div>
   );
 }
 
 const inputClass =
-  "w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand";
+  "w-full rounded-lg border border-white/[0.08] bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-brand/60 transition-colors";
 
 function normalizeHeader(h: string) {
   return h
@@ -291,42 +291,44 @@ export function ProspeccaoManager({ currentUserId, isAdmin }: { currentUserId: s
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <input
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Buscar por empresa, lead, e-mail ou telefone..."
-          className={`${inputClass} sm:max-w-sm`}
-        />
+        <div className="relative sm:max-w-sm sm:flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <input
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Buscar por empresa, lead, e-mail ou telefone..."
+            className={`${inputClass} pl-9`}
+          />
+        </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-slate-500"
+            className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-brand/30 hover:text-brand"
           >
-            <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
-            </svg>
+            <Upload className="h-4 w-4" />
             Importar Excel
           </button>
           <button
             type="button"
             onClick={() => setShowNewContact(true)}
-            className="flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover"
+            className="flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink shadow-[0_0_16px_#f5b40030] transition hover:bg-brand-hover hover:shadow-[0_0_20px_#f5b40050]"
           >
-            + Novo contato
+            <Plus className="h-4 w-4" />
+            Novo contato
           </button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40">
+      <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-slate-900/60">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
-              <th className="px-4 py-3 font-medium">Empresa</th>
-              <th className="px-4 py-3 font-medium">Lead</th>
-              <th className="px-4 py-3 font-medium">Contato</th>
-              <th className="px-4 py-3 font-medium">Oportunidades</th>
-              <th className="px-4 py-3 font-medium"></th>
+            <tr className="border-b border-white/[0.06] text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-3">Empresa</th>
+              <th className="px-4 py-3">Lead</th>
+              <th className="px-4 py-3">Contato</th>
+              <th className="px-4 py-3">Oportunidades</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -345,8 +347,15 @@ export function ProspeccaoManager({ currentUserId, isAdmin }: { currentUserId: s
               </tr>
             )}
             {contacts.map((c) => (
-              <tr key={c.id} className="border-b border-slate-800/60 last:border-0 hover:bg-slate-900/60">
-                <td className="px-4 py-3 font-medium text-slate-100">{c.companyName}</td>
+              <tr key={c.id} className="border-b border-white/[0.05] transition-colors last:border-0 hover:bg-white/[0.02]">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/15 text-[10px] font-black text-brand">
+                      {initials(c.companyName) || "?"}
+                    </div>
+                    <span className="font-semibold text-white">{c.companyName}</span>
+                  </div>
+                </td>
                 <td className="px-4 py-3 text-slate-300">{c.name}</td>
                 <td className="px-4 py-3 text-slate-400">
                   <div className="flex flex-col gap-0.5">
@@ -356,22 +365,28 @@ export function ProspeccaoManager({ currentUserId, isAdmin }: { currentUserId: s
                     {!c.email && !c.phone && !c.phone2 && <span className="text-slate-600">—</span>}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-slate-400">{c._count.opportunities}</td>
+                <td className="px-4 py-3">
+                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/[0.08] px-1.5 text-[11px] font-bold text-slate-300">
+                    {c._count.opportunities}
+                  </span>
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
                     <button
                       type="button"
                       onClick={() => openOpportunityModal(c)}
-                      className="rounded-lg border border-brand/40 px-3 py-1.5 text-xs font-semibold text-brand transition hover:bg-brand/10"
+                      className="flex items-center gap-1 rounded-lg border border-brand/30 px-3 py-1.5 text-xs font-semibold text-brand transition-colors hover:bg-brand/10"
                     >
-                      + Oportunidade
+                      <Plus className="h-3.5 w-3.5" />
+                      Oportunidade
                     </button>
                     <button
                       type="button"
                       onClick={() => deleteContact(c.id)}
-                      className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:border-red-500/50 hover:text-red-400"
+                      className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                      aria-label="Excluir contato"
                     >
-                      Excluir
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </td>
@@ -423,7 +438,7 @@ export function ProspeccaoManager({ currentUserId, isAdmin }: { currentUserId: s
             <button
               type="submit"
               disabled={savingContact}
-              className="mt-1 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover disabled:opacity-60"
+              className="mt-1 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink shadow-[0_0_16px_#f5b40030] transition hover:bg-brand-hover hover:shadow-[0_0_20px_#f5b40050] disabled:opacity-60"
             >
               {savingContact ? "Salvando..." : "Salvar contato"}
             </button>
@@ -453,20 +468,26 @@ export function ProspeccaoManager({ currentUserId, isAdmin }: { currentUserId: s
               type="file"
               accept=".xlsx,.xls,.csv"
               onChange={onFileSelected}
-              className="text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-xs file:font-medium file:text-slate-200 hover:file:bg-slate-700"
+              className="text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-white/[0.08] file:px-3 file:py-2 file:text-xs file:font-medium file:text-slate-200 hover:file:bg-brand/20 hover:file:text-brand"
             />
             {importFileName && importRows.length > 0 && (
-              <p className="text-xs text-emerald-400">
+              <p className="flex items-center gap-1.5 text-xs text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5" />
                 {importFileName}: {importRows.length} contato(s) prontos para importar.
               </p>
             )}
             {importError && <p className="text-xs text-red-400">{importError}</p>}
-            {importResult && <p className="text-xs text-emerald-400">{importResult}</p>}
+            {importResult && (
+              <p className="flex items-center gap-1.5 text-xs text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {importResult}
+              </p>
+            )}
             <button
               type="button"
               disabled={importRows.length === 0 || importing}
               onClick={confirmImport}
-              className="mt-1 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover disabled:opacity-60"
+              className="mt-1 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink shadow-[0_0_16px_#f5b40030] transition hover:bg-brand-hover hover:shadow-[0_0_20px_#f5b40050] disabled:opacity-60"
             >
               {importing ? "Importando..." : `Importar ${importRows.length || ""} contato(s)`}
             </button>
@@ -478,11 +499,14 @@ export function ProspeccaoManager({ currentUserId, isAdmin }: { currentUserId: s
         <Modal title={`Nova oportunidade · ${opportunityContact.companyName}`} onClose={() => setOpportunityContact(null)}>
           {opportunityDone ? (
             <div className="flex flex-col gap-3">
-              <p className="text-sm text-emerald-400">Oportunidade criada com sucesso.</p>
+              <p className="flex items-center gap-1.5 text-sm text-emerald-400">
+                <CheckCircle2 className="h-4 w-4" />
+                Oportunidade criada com sucesso.
+              </p>
               <button
                 type="button"
                 onClick={() => setOpportunityContact(null)}
-                className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover"
+                className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink shadow-[0_0_16px_#f5b40030] transition hover:bg-brand-hover hover:shadow-[0_0_20px_#f5b40050]"
               >
                 Fechar
               </button>
@@ -546,7 +570,7 @@ export function ProspeccaoManager({ currentUserId, isAdmin }: { currentUserId: s
               <button
                 type="submit"
                 disabled={savingOpportunity}
-                className="mt-1 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:bg-brand-hover disabled:opacity-60"
+                className="mt-1 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink shadow-[0_0_16px_#f5b40030] transition hover:bg-brand-hover hover:shadow-[0_0_20px_#f5b40050] disabled:opacity-60"
               >
                 {savingOpportunity ? "Criando..." : "Criar oportunidade"}
               </button>
