@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
-import { STAGE_LABELS, STAGE_ORDER } from "@/lib/crm";
 
 type Contact = {
   id: string;
@@ -15,6 +14,9 @@ type Contact = {
   createdAt: string;
   _count: { opportunities: number };
 };
+
+type Stage = { id: string; name: string; color: string; order: number };
+type CrmUser = { id: string; name: string };
 
 function Modal({
   title,
@@ -90,10 +92,12 @@ function parseWorkbookRows(data: ArrayBuffer) {
   });
 }
 
-export function ProspeccaoManager() {
+export function ProspeccaoManager({ currentUserId, isAdmin }: { currentUserId: string; isAdmin: boolean }) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [stages, setStages] = useState<Stage[]>([]);
+  const [users, setUsers] = useState<CrmUser[]>([]);
 
   const [showNewContact, setShowNewContact] = useState(false);
   const [newContact, setNewContact] = useState({ companyName: "", name: "", email: "", phone: "", phone2: "" });
@@ -109,7 +113,13 @@ export function ProspeccaoManager() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [opportunityContact, setOpportunityContact] = useState<Contact | null>(null);
-  const [newOpportunity, setNewOpportunity] = useState({ title: "", value: "", stage: "NEW", notes: "" });
+  const [newOpportunity, setNewOpportunity] = useState({
+    title: "",
+    value: "",
+    stageId: "",
+    ownerId: currentUserId,
+    notes: "",
+  });
   const [savingOpportunity, setSavingOpportunity] = useState(false);
   const [opportunityError, setOpportunityError] = useState<string | null>(null);
   const [opportunityDone, setOpportunityDone] = useState(false);
@@ -130,6 +140,17 @@ export function ProspeccaoManager() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial load reuses the same loader called after mutations
     loadContacts();
+    (async () => {
+      const [stagesRes, usersRes] = await Promise.all([fetch("/api/crm/stages"), fetch("/api/crm/users")]);
+      if (stagesRes.ok) {
+        const json = await stagesRes.json();
+        setStages(json.stages);
+      }
+      if (usersRes.ok) {
+        const json = await usersRes.json();
+        setUsers(json.users);
+      }
+    })();
   }, []);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -224,7 +245,13 @@ export function ProspeccaoManager() {
 
   function openOpportunityModal(contact: Contact) {
     setOpportunityContact(contact);
-    setNewOpportunity({ title: `Oportunidade - ${contact.companyName}`, value: "", stage: "NEW", notes: "" });
+    setNewOpportunity({
+      title: `Oportunidade - ${contact.companyName}`,
+      value: "",
+      stageId: stages[0]?.id ?? "",
+      ownerId: currentUserId,
+      notes: "",
+    });
     setOpportunityError(null);
     setOpportunityDone(false);
   }
@@ -242,7 +269,8 @@ export function ProspeccaoManager() {
           contactId: opportunityContact.id,
           title: newOpportunity.title,
           value: newOpportunity.value ? Number(newOpportunity.value) : undefined,
-          stage: newOpportunity.stage,
+          stageId: newOpportunity.stageId || undefined,
+          ownerId: newOpportunity.ownerId,
           notes: newOpportunity.notes || undefined,
         }),
       });
@@ -479,17 +507,34 @@ export function ProspeccaoManager() {
                   className={inputClass}
                 />
                 <select
-                  value={newOpportunity.stage}
-                  onChange={(e) => setNewOpportunity({ ...newOpportunity, stage: e.target.value })}
+                  value={newOpportunity.stageId}
+                  onChange={(e) => setNewOpportunity({ ...newOpportunity, stageId: e.target.value })}
                   className={inputClass}
                 >
-                  {STAGE_ORDER.map((s) => (
-                    <option key={s} value={s}>
-                      {STAGE_LABELS[s]}
+                  {stages.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
                     </option>
                   ))}
                 </select>
               </div>
+              {isAdmin ? (
+                <select
+                  value={newOpportunity.ownerId}
+                  onChange={(e) => setNewOpportunity({ ...newOpportunity, ownerId: e.target.value })}
+                  className={inputClass}
+                >
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.id === currentUserId ? `${u.name} (eu)` : u.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Responsável: <span className="text-slate-300">você</span>
+                </p>
+              )}
               <textarea
                 placeholder="Observações (opcional)"
                 value={newOpportunity.notes}

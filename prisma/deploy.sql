@@ -69,11 +69,18 @@ CREATE TABLE IF NOT EXISTS "WhatsAppMessage" (
     CONSTRAINT "WhatsAppMessage_pkey" PRIMARY KEY ("id")
 );
 
-DO $$ BEGIN
-    CREATE TYPE "OpportunityStage" AS ENUM ('NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+CREATE TABLE IF NOT EXISTS "PipelineStage" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "color" TEXT NOT NULL DEFAULT '#f5b400',
+    "order" INTEGER NOT NULL,
+    "isWon" BOOLEAN NOT NULL DEFAULT false,
+    "isLost" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PipelineStage_pkey" PRIMARY KEY ("id")
+);
 
 CREATE TABLE IF NOT EXISTS "Contact" (
     "id" TEXT NOT NULL,
@@ -93,10 +100,11 @@ CREATE TABLE IF NOT EXISTS "Opportunity" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "value" DOUBLE PRECISION,
-    "stage" "OpportunityStage" NOT NULL DEFAULT 'NEW',
     "notes" TEXT,
     "expectedCloseAt" TIMESTAMP(3),
     "contactId" TEXT NOT NULL,
+    "stageId" TEXT NOT NULL,
+    "ownerId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -109,13 +117,27 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
+DO $$ BEGIN
+    ALTER TABLE "Opportunity" ADD CONSTRAINT "Opportunity_stageId_fkey" FOREIGN KEY ("stageId") REFERENCES "PipelineStage"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE "Opportunity" ADD CONSTRAINT "Opportunity_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX IF NOT EXISTS "Integration_provider_key" ON "Integration"("provider");
 CREATE UNIQUE INDEX IF NOT EXISTS "CallRecord_externalId_key" ON "CallRecord"("externalId");
 CREATE INDEX IF NOT EXISTS "CallRecord_startedAt_idx" ON "CallRecord"("startedAt");
 CREATE UNIQUE INDEX IF NOT EXISTS "WhatsAppMessage_externalId_key" ON "WhatsAppMessage"("externalId");
 CREATE INDEX IF NOT EXISTS "WhatsAppMessage_sentAt_idx" ON "WhatsAppMessage"("sentAt");
+CREATE INDEX IF NOT EXISTS "PipelineStage_order_idx" ON "PipelineStage"("order");
 CREATE UNIQUE INDEX IF NOT EXISTS "Contact_email_key" ON "Contact"("email");
 CREATE INDEX IF NOT EXISTS "Contact_companyName_idx" ON "Contact"("companyName");
-CREATE INDEX IF NOT EXISTS "Opportunity_stage_idx" ON "Opportunity"("stage");
+CREATE INDEX IF NOT EXISTS "Opportunity_stageId_idx" ON "Opportunity"("stageId");
 CREATE INDEX IF NOT EXISTS "Opportunity_contactId_idx" ON "Opportunity"("contactId");
+CREATE INDEX IF NOT EXISTS "Opportunity_ownerId_idx" ON "Opportunity"("ownerId");

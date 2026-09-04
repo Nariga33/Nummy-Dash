@@ -142,9 +142,33 @@ async function seedDemoData() {
   console.log(`Seed de demonstração criado: ${calls.length} ligações, ${messages.length} mensagens.`);
 }
 
+const DEFAULT_STAGES = [
+  { name: "Novo", color: "#94a3b8" },
+  { name: "Contato feito", color: "#38bdf8" },
+  { name: "Qualificado", color: "#a78bfa" },
+  { name: "Proposta", color: "#f5b400" },
+  { name: "Negociação", color: "#fb923c" },
+  { name: "Ganho", color: "#34d399", isWon: true },
+  { name: "Perdido", color: "#f87171", isLost: true },
+];
+
+async function seedPipelineStages() {
+  const existing = await prisma.pipelineStage.count();
+  if (existing > 0) {
+    console.log("Colunas do pipeline já existem, pulando.");
+    return;
+  }
+
+  await prisma.pipelineStage.createMany({
+    data: DEFAULT_STAGES.map((stage, order) => ({ ...stage, order })),
+  });
+  console.log(`${DEFAULT_STAGES.length} colunas padrão do pipeline criadas.`);
+}
+
 async function main() {
   await seedAdmin();
   await seedApi4com();
+  await seedPipelineStages();
   if (process.env.SEED_DEMO_DATA === "true") {
     await seedDemoData();
   }

@@ -1,6 +1,9 @@
+import { auth } from "@/auth";
 import { PipelineBoard } from "./pipeline-board";
 
-export default function OportunidadesPage() {
+export default async function OportunidadesPage() {
+  const session = await auth();
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -9,7 +12,7 @@ export default function OportunidadesPage() {
           Arraste os cards entre as colunas para atualizar o estágio de cada oportunidade.
         </p>
       </div>
-      <PipelineBoard />
+      <PipelineBoard currentUserId={session!.user.id} isAdmin={session!.user.role === "ADMIN"} />
     </div>
   );
 }

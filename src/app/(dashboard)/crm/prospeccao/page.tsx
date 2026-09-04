@@ -1,6 +1,9 @@
+import { auth } from "@/auth";
 import { ProspeccaoManager } from "./prospeccao-manager";
 
-export default function ProspeccaoPage() {
+export default async function ProspeccaoPage() {
+  const session = await auth();
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -9,7 +12,7 @@ export default function ProspeccaoPage() {
           Cadastre e importe contatos, e crie oportunidades direto a partir da lista de prospecção.
         </p>
       </div>
-      <ProspeccaoManager />
+      <ProspeccaoManager currentUserId={session!.user.id} isAdmin={session!.user.role === "ADMIN"} />
     </div>
   );
 }
