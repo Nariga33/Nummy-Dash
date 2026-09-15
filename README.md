@@ -146,6 +146,46 @@ A mesma busca também trouxe empresas sem carrinho nenhum — a detecção de
 tecnologia do Apollo tem falso-positivo, por isso os resultados entram como
 "Novo" e passam pelo funil manual antes de virar contato.
 
+## CRM — Prospecção com Excel e enriquecimento por IA
+
+Módulo separado do de Apollo acima, em **CRM → Prospecção**
+(`/crm/prospeccao`): cadastro/importação de contatos (planilha .xlsx/.csv),
+pipeline de oportunidades customizável (**CRM → Pipeline**) e um agente de
+IA que confirma se a empresa tem e-commerce próprio.
+
+### Enriquecimento com IA
+
+Usa a API da Anthropic com busca na web (`claude-opus-5` por padrão) pra
+achar o site oficial de cada empresa e confirmar, com critério rígido, se
+ela tem **carrinho + checkout no próprio domínio** — não conta site sem
+carrinho, "compre pelo WhatsApp", nem loja só em marketplace de terceiros.
+
+- **Ao importar uma planilha**: deixe marcada "Enriquecer automaticamente
+  com IA depois de importar" no modal de importação.
+- **Empresas já cadastradas**: botão **"Enriquecer pendentes"** enfileira
+  todas as ainda não verificadas.
+- **Uma empresa específica**: "Enriquecer agora" na coluna E-commerce.
+- Uma barra no topo mostra o progresso (`X de Y processadas`) enquanto o
+  job está rodando.
+- 👍/👎 marcam Qualificado / Não qualificado; o botão Oportunidade abre um
+  formulário já preenchido com os dados da empresa.
+
+**Como roda em segundo plano** (`processNextBatch` em
+`src/lib/enrichment-queue.ts`, lotes de 4 contatos por vez): a tela chama
+`POST /api/crm/enrichment/process` a cada ~4s enquanto há job ativo, e o
+cron da Vercel (`/api/cron/enrichment`, protegido pelo header que a
+própria Vercel injeta a partir de `CRON_SECRET`) dá conta de drenar a fila
+mesmo com a aba fechada.
+
+**Atenção ao plano da Vercel**: no plano Hobby, cron só roda 1x/dia
+independente do `schedule` configurado — nesse caso o enriquecimento
+acontece de fato pelo caminho da aba aberta. Pra volume grande, deixe a
+aba aberta alguns minutos depois de importar, ou use o plano Pro.
+
+Sem `ANTHROPIC_API_KEY` configurada, o botão ainda funciona mas marca a
+empresa como "A confirmar" com o erro registrado — nunca trava o resto da
+fila.
+
 ## Usuários
 
 Não existe cadastro público. Um administrador cria cada login em

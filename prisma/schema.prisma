@@ -171,6 +171,44 @@ model PipelineStage {
   @@index([order])
 }
 
+enum EcommerceStatus {
+  NAO_VERIF
+  SIM
+  NAO
+  DUVIDA
+}
+
+enum Qualification {
+  QUALIFICADO
+  NAO_QUALIFICADO
+}
+
+enum EnrichmentJobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+/// Fila de enriquecimento de empresas via agente de IA (Anthropic + busca
+/// web). Um job ativo por vez — enqueueContacts entra na fila existente se
+/// já houver uma rodando, em vez de criar um job novo.
+model EnrichmentJob {
+  id             String              @id @default(cuid())
+  status         EnrichmentJobStatus @default(PENDING)
+  totalCount     Int                 @default(0)
+  processedCount Int                 @default(0)
+  foundCount     Int                 @default(0)
+  errorCount     Int                 @default(0)
+  createdById    String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  finishedAt     DateTime?
+  contacts       Contact[]
+
+  @@index([status])
+}
+
 model Contact {
   id            String         @id @default(cuid())
   companyName   String
@@ -183,7 +221,22 @@ model Contact {
   updatedAt     DateTime       @updatedAt
   opportunities Opportunity[]
 
+  /// Enriquecimento de e-commerce (agente de IA com busca na web) — ver
+  /// EnrichmentJob e src/lib/enrichment.ts.
+  website           String?
+  ecommerceStatus   EcommerceStatus @default(NAO_VERIF)
+  ecommerceEvidence String?
+  role              String?
+  sector            String?
+  qualification     Qualification?
+  enrichmentQueued  Boolean         @default(false)
+  enrichmentJobId   String?
+  enrichmentJob     EnrichmentJob?  @relation(fields: [enrichmentJobId], references: [id], onDelete: SetNull)
+  enrichedAt        DateTime?
+
   @@index([companyName])
+  @@index([ecommerceStatus])
+  @@index([enrichmentQueued])
 }
 
 model Opportunity {

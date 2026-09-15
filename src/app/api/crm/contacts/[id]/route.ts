@@ -10,6 +10,7 @@ const patchSchema = z.object({
   phone: z.string().optional(),
   phone2: z.string().optional(),
   notes: z.string().optional(),
+  qualification: z.enum(["QUALIFICADO", "NAO_QUALIFICADO"]).nullable().optional(),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -29,6 +30,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (parsed.data.phone !== undefined) data.phone = parsed.data.phone.trim() || null;
   if (parsed.data.phone2 !== undefined) data.phone2 = parsed.data.phone2.trim() || null;
   if (parsed.data.notes !== undefined) data.notes = parsed.data.notes.trim() || null;
+  if (parsed.data.qualification !== undefined) data.qualification = parsed.data.qualification;
 
   if (data.email) {
     const existing = await prisma.contact.findUnique({ where: { email: data.email } });

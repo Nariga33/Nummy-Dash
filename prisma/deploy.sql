@@ -254,3 +254,61 @@ CREATE INDEX IF NOT EXISTS "Contact_companyName_idx" ON "Contact"("companyName")
 CREATE INDEX IF NOT EXISTS "Opportunity_stageId_idx" ON "Opportunity"("stageId");
 CREATE INDEX IF NOT EXISTS "Opportunity_contactId_idx" ON "Opportunity"("contactId");
 CREATE INDEX IF NOT EXISTS "Opportunity_ownerId_idx" ON "Opportunity"("ownerId");
+
+-- Enriquecimento de leads com IA (migration 20260915140000_add_enrichment),
+-- no mesmo padrão idempotente acima.
+
+DO $$ BEGIN
+    CREATE TYPE "EcommerceStatus" AS ENUM ('NAO_VERIF', 'SIM', 'NAO', 'DUVIDA');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "Qualification" AS ENUM ('QUALIFICADO', 'NAO_QUALIFICADO');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "EnrichmentJobStatus" AS ENUM ('PENDING', 'RUNNING', 'DONE', 'FAILED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "EnrichmentJob" (
+    "id" TEXT NOT NULL,
+    "status" "EnrichmentJobStatus" NOT NULL DEFAULT 'PENDING',
+    "totalCount" INTEGER NOT NULL DEFAULT 0,
+    "processedCount" INTEGER NOT NULL DEFAULT 0,
+    "foundCount" INTEGER NOT NULL DEFAULT 0,
+    "errorCount" INTEGER NOT NULL DEFAULT 0,
+    "createdById" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "finishedAt" TIMESTAMP(3),
+
+    CONSTRAINT "EnrichmentJob_pkey" PRIMARY KEY ("id")
+);
+
+-- Colunas de enriquecimento podem não existir ainda se a tabela Contact já
+-- foi criada por um deploy anterior — adiciona de forma idempotente.
+ALTER TABLE "Contact" ADD COLUMN IF NOT EXISTS "website" TEXT;
+ALTER TABLE "Contact" ADD COLUMN IF NOT EXISTS "ecommerceStatus" "EcommerceStatus" NOT NULL DEFAULT 'NAO_VERIF';
+ALTER TABLE "Contact" ADD COLUMN IF NOT EXISTS "ecommerceEvidence" TEXT;
+ALTER TABLE "Contact" ADD COLUMN IF NOT EXISTS "role" TEXT;
+ALTER TABLE "Contact" ADD COLUMN IF NOT EXISTS "sector" TEXT;
+ALTER TABLE "Contact" ADD COLUMN IF NOT EXISTS "qualification" "Qualification";
+ALTER TABLE "Contact" ADD COLUMN IF NOT EXISTS "enrichmentQueued" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Contact" ADD COLUMN IF NOT EXISTS "enrichmentJobId" TEXT;
+ALTER TABLE "Contact" ADD COLUMN IF NOT EXISTS "enrichedAt" TIMESTAMP(3);
+
+DO $$ BEGIN
+    ALTER TABLE "Contact" ADD CONSTRAINT "Contact_enrichmentJobId_fkey" FOREIGN KEY ("enrichmentJobId") REFERENCES "EnrichmentJob"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE INDEX IF NOT EXISTS "EnrichmentJob_status_idx" ON "EnrichmentJob"("status");
+CREATE INDEX IF NOT EXISTS "Contact_ecommerceStatus_idx" ON "Contact"("ecommerceStatus");
+CREATE INDEX IF NOT EXISTS "Contact_enrichmentQueued_idx" ON "Contact"("enrichmentQueued");
