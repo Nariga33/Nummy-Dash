@@ -1,9 +1,9 @@
 # Outbound Dashboard
 
 Dashboard gerencial de operação outbound: acompanha quantidade de ligações
-(via API4COM) e quantidade de mensagens WhatsApp encaminhadas, com login por
-e-mail e senha (contas criadas apenas por administradores, sem cadastro
-público).
+(via API4COM), quantidade de mensagens WhatsApp encaminhadas e prospecção de
+empresas de e-commerce via Apollo, com login por e-mail e senha (contas
+criadas apenas por administradores, sem cadastro público).
 
 ## Stack
 
@@ -82,6 +82,109 @@ o dashboard de duas formas:
 2. **Lançamento manual** — enquanto nenhuma API está conectada, um admin
    pode registrar a quantidade de mensagens de um dia diretamente na tela
    Integrações.
+
+### Prospecção — Apollo (empresas de e-commerce)
+
+Tela **Prospecção** (`/prospeccao`) para buscar lojas online direto no
+Apollo, endereçando dois problemas específicos:
+
+1. **Empresas pequenas somem da busca.** Filtrando direto na UI do Apollo é
+   fácil esquecer de marcar as faixas pequenas de funcionários (1–10,
+   11–20), então o resultado fica dominado por empresas grandes. Aqui a
+   busca sempre manda faixas explícitas para a API — nunca "todas" — e as
+   faixas pequenas (1–10, 11–20, 21–50, 51–100) já vêm marcadas por padrão.
+   Essa é justamente a lacuna que o concorrente interno, focado nas
+   empresas grandes, deixa aberta — o ICP daqui começa nesse porte menor.
+2. **Precisa ser e-commerce com carrinho ativo.** A busca filtra por
+   `technology_names` do Apollo, reconhecendo plataformas de carrinho
+   (Shopify, Nuvemshop, VTEX, Loja Integrada, Tray, WooCommerce, Magento,
+   BigCommerce, Wake, Linx, Vnda, Yampi, Wix Stores, PrestaShop, OpenCart,
+   Cartpanda, Salesforce Commerce Cloud). Cada empresa retornada mostra a(s)
+   plataforma(s) detectada(s) — se nenhuma vier marcada na busca, o filtro
+   de tecnologia fica desligado e traz e-commerce e não-e-commerce juntos.
+
+Cada empresa encontrada é salva com link do site e do LinkedIn, porte
+(nº de funcionários), local e um status de funil (Novo → Contatado →
+Qualificado/Descartado) que pode ser atualizado direto na tabela. O Apollo
+não expõe faturamento em reais de forma confiável — o corte de R$ 50 mil/mês
+do ICP entra como critério manual na hora de qualificar, usando porte e
+plataforma como sinais.
+
+Para conectar: em **Integrações**, cole a API key do Apollo (Settings → API
+no painel do Apollo) e clique em "Testar conexão".
+
+#### Decisores e telefone
+
+Em cada empresa da lista, o botão **Decisores** abre uma busca de pessoas por
+cargo e/ou nome (ex: "Sócio, Fundador, CEO, Diretor" ou o nome de alguém),
+igual à busca de pessoas do próprio Apollo — mas já restrita àquela empresa.
+A busca de pessoas do Apollo nunca devolve telefone direto; por isso cada
+decisor tem um botão **Revelar telefone**, que:
+
+1. Pede confirmação (a revelação consome 1 crédito Apollo por decisor).
+2. Dispara a revelação, que é **assíncrona** — o Apollo não devolve o número
+   na hora, ele confirma depois via webhook (`/api/webhooks/apollo-phone`,
+   autenticado por um token gerado automaticamente ao salvar a chave do
+   Apollo). O decisor fica "Pendente" até o webhook chegar (segundos a poucos
+   minutos) — atualize a página pra ver o número.
+
+E-mail não é o foco (o time não usa muito) — a tela não pede revelação de
+e-mail, só telefone. O formato exato do payload do webhook do Apollo ainda
+não foi confirmado com uma revelação real nesta sessão (só a busca de
+empresas foi validada com uma chamada real) — o payload recebido é logado no
+servidor pra ajustar `normalizePhoneWebhook` em
+`src/lib/integrations/apollo.ts` assim que a primeira revelação real
+acontecer.
+
+Validado com uma busca real: Brasil + 1–50 funcionários + qualquer uma das
+tecnologias retornou 6.293 empresas — confirma que a lacuna existe e é
+grande. Os slugs de tecnologia confirmados nessa busca foram `shopify`,
+`loja_integrada`, `vtex`, `wake_commerce`, `linx_commerce`, `vnda` e
+`cartpanda` (ver comentário em `src/lib/integrations/apollo.ts` para o que
+ainda falta confirmar, incluindo o slug real do Nuvemshop e do WooCommerce).
+A mesma busca também trouxe empresas sem carrinho nenhum — a detecção de
+tecnologia do Apollo tem falso-positivo, por isso os resultados entram como
+"Novo" e passam pelo funil manual antes de virar contato.
+
+## CRM — Prospecção com Excel e enriquecimento por IA
+
+Módulo separado do de Apollo acima, em **CRM → Prospecção**
+(`/crm/prospeccao`): cadastro/importação de contatos (planilha .xlsx/.csv),
+pipeline de oportunidades customizável (**CRM → Pipeline**) e um agente de
+IA que confirma se a empresa tem e-commerce próprio.
+
+### Enriquecimento com IA
+
+Usa a API da Anthropic com busca na web (`claude-opus-5` por padrão) pra
+achar o site oficial de cada empresa e confirmar, com critério rígido, se
+ela tem **carrinho + checkout no próprio domínio** — não conta site sem
+carrinho, "compre pelo WhatsApp", nem loja só em marketplace de terceiros.
+
+- **Ao importar uma planilha**: deixe marcada "Enriquecer automaticamente
+  com IA depois de importar" no modal de importação.
+- **Empresas já cadastradas**: botão **"Enriquecer pendentes"** enfileira
+  todas as ainda não verificadas.
+- **Uma empresa específica**: "Enriquecer agora" na coluna E-commerce.
+- Uma barra no topo mostra o progresso (`X de Y processadas`) enquanto o
+  job está rodando.
+- 👍/👎 marcam Qualificado / Não qualificado; o botão Oportunidade abre um
+  formulário já preenchido com os dados da empresa.
+
+**Como roda em segundo plano** (`processNextBatch` em
+`src/lib/enrichment-queue.ts`, lotes de 4 contatos por vez): a tela chama
+`POST /api/crm/enrichment/process` a cada ~4s enquanto há job ativo, e o
+cron da Vercel (`/api/cron/enrichment`, protegido pelo header que a
+própria Vercel injeta a partir de `CRON_SECRET`) dá conta de drenar a fila
+mesmo com a aba fechada.
+
+**Atenção ao plano da Vercel**: no plano Hobby, cron só roda 1x/dia
+independente do `schedule` configurado — nesse caso o enriquecimento
+acontece de fato pelo caminho da aba aberta. Pra volume grande, deixe a
+aba aberta alguns minutos depois de importar, ou use o plano Pro.
+
+Sem `ANTHROPIC_API_KEY` configurada, o botão ainda funciona mas marca a
+empresa como "A confirmar" com o erro registrado — nunca trava o resto da
+fila.
 
 ## Usuários
 

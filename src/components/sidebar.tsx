@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   Menu,
   LogOut,
+  Search,
 } from "lucide-react";
 import { signOutAction } from "@/app/(dashboard)/actions";
 import { LogoMark } from "@/components/logo-mark";
@@ -27,6 +28,10 @@ const navGroups: NavGroup[] = [
       { href: "/crm/prospeccao", label: "Prospecção", icon: Users2 },
       { href: "/crm/oportunidades", label: "Pipeline", icon: Kanban },
     ],
+  },
+  {
+    label: "Apollo",
+    items: [{ href: "/prospeccao", label: "Prospecção Apollo", icon: Search }],
   },
   {
     label: "Configurações",

@@ -10,9 +10,23 @@ export type WhatsAppConfig = {
   webhookToken: string;
 };
 
+export type ApolloConfig = {
+  apiKey: string;
+  baseUrl: string;
+  /** Token gerado automaticamente pra validar o webhook de revelação de telefone. */
+  webhookToken: string;
+};
+
+export type CnpjaConfig = {
+  apiKey: string;
+  baseUrl: string;
+};
+
 export const PROVIDERS = {
   API4COM: "api4com",
   WHATSAPP: "whatsapp",
+  APOLLO: "apollo",
+  CNPJA: "cnpja",
 } as const;
 
 export async function getIntegration(provider: string) {

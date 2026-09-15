@@ -1,3 +1,9 @@
 {
-  "buildCommand": "sh scripts/build.sh"
+  "buildCommand": "sh scripts/build.sh",
+  "crons": [
+    {
+      "path": "/api/cron/enrichment",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
