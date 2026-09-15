@@ -13,14 +13,15 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(VIEWER)
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                 String        @id @default(cuid())
+  name               String
+  email              String        @unique
+  passwordHash       String
+  role               Role          @default(VIEWER)
+  active             Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  ownedOpportunities Opportunity[]
 }
 
 model Integration {
@@ -154,4 +155,53 @@ model ProspectContact {
 
   @@index([companyId])
   @@index([status])
+}
+
+model PipelineStage {
+  id            String        @id @default(cuid())
+  name          String
+  color         String        @default("#f5b400")
+  order         Int
+  isWon         Boolean       @default(false)
+  isLost        Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  opportunities Opportunity[]
+
+  @@index([order])
+}
+
+model Contact {
+  id            String         @id @default(cuid())
+  companyName   String
+  name          String
+  email         String?        @unique
+  phone         String?
+  phone2        String?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  opportunities Opportunity[]
+
+  @@index([companyName])
+}
+
+model Opportunity {
+  id              String        @id @default(cuid())
+  title           String
+  value           Float?
+  notes           String?
+  expectedCloseAt DateTime?
+  contactId       String
+  contact         Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  stageId         String
+  stage           PipelineStage @relation(fields: [stageId], references: [id])
+  ownerId         String?
+  owner           User?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([stageId])
+  @@index([contactId])
+  @@index([ownerId])
 }
